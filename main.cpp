@@ -11,9 +11,10 @@
 #include <limits>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 1000;
+const uint32_t HEIGHT = 700;
 
 const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -29,7 +30,6 @@ const std::vector<const char*> deviceExtensions = {
 #else
     const bool enableValidationLayers = true;
 #endif
-
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -69,7 +69,7 @@ struct QueueFamilyIndices {
     std::optional<uint32_t> presentFamily;
 
 
-    bool isComplete() const {
+    [[nodiscard]] bool isComplete() const {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
@@ -105,18 +105,20 @@ private:
     VkFormat swapChainImageFormat{};
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    VkRenderPass renderPass{};
+    VkPipelineLayout pipelineLayout{};
+    VkPipeline graphicsPipeline{};
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
+    VkSemaphore imageAvailableSemaphore{};
+    VkSemaphore renderFinishedSemaphore{};
+    VkFence inFlightFence{};
 
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    VkCommandPool commandPool{};
+    VkCommandBuffer commandBuffer{};
 
+    double startTime;
+    uint64_t frames = 0;
 
     void initWindow() {
         glfwInit();
@@ -129,12 +131,33 @@ private:
     }
 
     void mainLoop() {
+        startTime = glfwGetTime();
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             drawFrame();
+            showFps();
         }
 
         vkDeviceWaitIdle(device);
+    }
+
+    void showFps(){
+        double currentTime = glfwGetTime();
+        double elapsedTime = currentTime - startTime;
+        frames++;
+        if (elapsedTime > 0.5){
+
+            double fps = double(frames) / elapsedTime;
+
+            std::stringstream ss;
+            ss << "Vulkan " << "[" << fps << " FPS]";
+
+            glfwSetWindowTitle(window, ss.str().c_str());
+
+            frames = 0;
+            startTime = currentTime;
+        }
+
     }
 
     void drawFrame(){
@@ -684,8 +707,6 @@ private:
         }
 
         return requiredExtensions.empty();
-
-        return true;
     }
 
     void setupDebugMessenger() {
