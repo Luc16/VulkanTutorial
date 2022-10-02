@@ -3,6 +3,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "external/imgui/imgui.h"
+#include "external/imgui/imgui_impl_glfw.h"
+#include "external/imgui/imgui_impl_vulkan.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -154,36 +157,37 @@ private:
     VkDevice device{};
     VkQueue graphicsQueue{};
     VkQueue presentQueue{};
-
     VkSwapchainKHR swapChain{};
+
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat{};
     VkExtent2D swapChainExtent{};
     std::vector<VkImageView> swapChainImageViews;
     VkRenderPass renderPass{};
-
     VkDescriptorSetLayout descriptorSetLayout{};
+
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
     std::vector<VkFramebuffer> swapChainFramebuffers;
-
     std::vector<VkSemaphore> imageAvailableSemaphores{};
+
     std::vector<VkSemaphore> renderFinishedSemaphores{};
     std::vector<VkFence> inFlightFences{};
-
     VkCommandPool commandPool{};
-    std::vector<VkCommandBuffer> commandBuffers{};
 
+    std::vector<VkCommandBuffer> commandBuffers{};
     VkBuffer vertexBuffer{};
+
     VkDeviceMemory vertexBufferMemory{};
     VkBuffer indexBuffer{};
     VkDeviceMemory indexBufferMemory{};
     std::vector<VkBuffer> uniformBuffers{};
     std::vector<VkDeviceMemory> uniformBuffersMemory{};
-
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
 
+    uint32_t queueFamily{};
+    uint32_t imageCount{};
 
     bool framebufferResized = false;
     double startTime{};
@@ -198,6 +202,11 @@ private:
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui_ImplGlfw_InitForVulkan(window, true);
+        ImGui::StyleColorsDark();
 
     }
 
@@ -239,6 +248,14 @@ private:
     void drawFrame(){
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE,  UINT64_MAX);
 
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        static float scale = 1.0f;
+        static float speed = 1.0f;
+        showImGui(scale, speed);
+
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
                                                 VK_NULL_HANDLE, &imageIndex);
@@ -249,12 +266,15 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(currentFrame);
+        updateUniformBuffer(currentFrame, scale, speed);
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+
+        ImGui::Render();
+        auto imGuiDrawData = ImGui::GetDrawData();
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, imGuiDrawData);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -299,22 +319,121 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void updateUniformBuffer(uint32_t currentImage){
+    void showImGui(float& scale, float& speed){
+        static bool show_demo_window = false, show_another_window = false;
+        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+        if (show_demo_window) {
+            ImGui::ShowDemoWindow(&show_demo_window);
+        }
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
+
+            ImGui::SliderFloat("scale", &scale, 1.0f, 3.0f);
+            ImGui::SliderFloat("speed", &speed, 0.5f, 4.0f);
+//            ImGui::ColorEdit3("clear color", (float *) &clear_color); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                        ImGui::GetIO().Framerate);
+            ImGui::End();
+        }
+
+        // 3. Show another simple window.
+        if (show_another_window)
+        {
+            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                show_another_window = false;
+            ImGui::End();
+        }
+
+    }
+
+    void recordCommandBuffer(VkCommandBuffer curCommandBuffer, uint32_t imageIndex, ImDrawData* drawData){
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(curCommandBuffer, &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(curCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+        VkBuffer vertexBuffers[] = {vertexBuffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(curCommandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(curCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(swapChainExtent.width);
+        viewport.height = static_cast<float>(swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(curCommandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChainExtent;
+        vkCmdSetScissor(curCommandBuffer, 0, 1, &scissor);
+
+        vkCmdBindDescriptorSets(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        vkCmdDrawIndexed(curCommandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
+        ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffers[currentFrame]);
+
+        vkCmdEndRenderPass(curCommandBuffer);
+
+        if (vkEndCommandBuffer(curCommandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+
+    }
+
+    void updateUniformBuffer(uint32_t currentImage, float scale, float speed){
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime-startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+        ubo.model = glm::scale(glm::mat4(1.0f), glm::vec3(scale)) * glm::rotate(glm::mat4(1.0f), speed * time * glm::radians(90.0f),
                                 glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                                glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height,
                                     0.1f, 10.0f);
 
-        ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height,
-                                    0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
         void* data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -350,12 +469,17 @@ private:
 
         vkDestroyCommandPool(device, commandPool, nullptr);
 
+        ImGui_ImplGlfw_Shutdown();
+        ImGui_ImplVulkan_Shutdown();
+        ImGui::DestroyContext();
+
         vkDestroyDevice(device, nullptr);
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
+
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -380,6 +504,64 @@ private:
         createDescriptorSets();
         createCommandBuffer();
         createSyncObjects();
+        initImGuiVulkan();
+    }
+
+    static void check_vk_result(VkResult err)
+    {
+        if (err == 0)
+            return;
+        fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+        if (err < 0)
+            abort();
+    }
+
+    void initImGuiVulkan() {
+        ImGui_ImplVulkan_InitInfo initInfo = {};
+        initInfo.Instance = instance;
+        initInfo.PhysicalDevice = physicalDevice;
+        initInfo.Device = device;
+        initInfo.QueueFamily = queueFamily;
+        initInfo.Queue = graphicsQueue;
+        initInfo.PipelineCache = nullptr;
+        initInfo.DescriptorPool = descriptorPool;
+        initInfo.Subpass = 0;
+        initInfo.MinImageCount = imageCount;
+        initInfo.ImageCount = static_cast<uint32_t>(swapChainImages.size());
+        initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        initInfo.Allocator = nullptr;
+        initInfo.CheckVkResultFn = check_vk_result;
+        ImGui_ImplVulkan_Init(&initInfo, renderPass);
+
+        {
+            VkResult err;
+            // Use any command queue
+            VkCommandPool command_pool = commandPool;
+            VkCommandBuffer command_buffer = commandBuffers[0];
+
+            err = vkResetCommandPool(device, command_pool, 0);
+            check_vk_result(err);
+            VkCommandBufferBeginInfo begin_info = {};
+            begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            err = vkBeginCommandBuffer(command_buffer, &begin_info);
+            check_vk_result(err);
+
+            ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+
+            VkSubmitInfo end_info = {};
+            end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            end_info.commandBufferCount = 1;
+            end_info.pCommandBuffers = &command_buffer;
+            err = vkEndCommandBuffer(command_buffer);
+            check_vk_result(err);
+            err = vkQueueSubmit(graphicsQueue, 1, &end_info, VK_NULL_HANDLE);
+            check_vk_result(err);
+
+            err = vkDeviceWaitIdle(device);
+            check_vk_result(err);
+            ImGui_ImplVulkan_DestroyFontUploadObjects();
+        }
     }
 
     void createDescriptorSets(){
@@ -418,19 +600,42 @@ private:
     }
 
     void createDescriptorPool() {
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-        VkDescriptorPoolCreateInfo poolInfo{};
+        VkDescriptorPoolSize poolSizes[] =
+        {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+        };
+        VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolInfo.maxSets = 1000 * IM_ARRAYSIZE(poolSizes);
+        poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
+        poolInfo.pPoolSizes = poolSizes;
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS){
             throw std::runtime_error("failed to create descriptor pool!");
         }
+
+
+//        VkDescriptorPoolSize poolSize{};
+//        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+//        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+//        VkDescriptorPoolCreateInfo poolInfo{};
+//        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+//        poolInfo.poolSizeCount = 1;
+//        poolInfo.pPoolSizes = &poolSize;
+//        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
 
     }
 
@@ -800,7 +1005,7 @@ private:
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+        imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
             imageCount = swapChainSupport.capabilities.maxImageCount;
@@ -817,6 +1022,7 @@ private:
 
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        queueFamily = indices.graphicsFamily.value();
 
         if (indices.graphicsFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -861,10 +1067,10 @@ private:
         std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         float queuePriority = 1.0f;
-        for (uint32_t queueFamily : uniqueQueueFamilies) {
+        for (uint32_t uQueueFamily : uniqueQueueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueFamilyIndex = uQueueFamily;
             queueCreateInfo.queueCount = 1;
             queueCreateInfo.pQueuePriorities = &queuePriority;
             queueCreateInfos.push_back(queueCreateInfo);
@@ -912,6 +1118,7 @@ private:
             glfwGetFramebufferSize(window, &width, &height);
             glfwWaitEvents();
         }
+        ImGui_ImplVulkan_SetMinImageCount(imageCount);
 
         vkDeviceWaitIdle(device);
         cleanUpSwapChain();
@@ -1211,8 +1418,8 @@ private:
         vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
-        for (const auto& queueFamily : queueFamilies){
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+        for (const auto& iQueueFamily : queueFamilies){
+            if (iQueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
                 indices.graphicsFamily = i;
             }
 
@@ -1262,61 +1469,6 @@ private:
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
-    }
-
-    void recordCommandBuffer(VkCommandBuffer curCommandBuffer, uint32_t imageIndex){
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
-
-        if (vkBeginCommandBuffer(curCommandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
-
-        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
-
-        vkCmdBeginRenderPass(curCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-        VkBuffer vertexBuffers[] = {vertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(curCommandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(curCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(swapChainExtent.width);
-        viewport.height = static_cast<float>(swapChainExtent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(curCommandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = swapChainExtent;
-        vkCmdSetScissor(curCommandBuffer, 0, 1, &scissor);
-
-        vkCmdBindDescriptorSets(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &descriptorSets[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(curCommandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-        vkCmdEndRenderPass(curCommandBuffer);
-
-        if (vkEndCommandBuffer(curCommandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-
     }
 };
 
