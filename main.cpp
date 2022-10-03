@@ -194,6 +194,10 @@ private:
     uint32_t frames = 0;
     uint32_t currentFrame = 0;
 
+    //imgui stuff
+    float scale = 1, speed = 1;
+    int axis = 0;
+
     void initWindow() {
         glfwInit();
 
@@ -254,7 +258,7 @@ private:
 
         static float scale = 1.0f;
         static float speed = 1.0f;
-        showImGui(scale, speed);
+        showImGui();
 
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
@@ -266,7 +270,7 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(currentFrame, scale, speed);
+        updateUniformBuffer(currentFrame);
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
@@ -319,7 +323,7 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void showImGui(float& scale, float& speed){
+    void showImGui(){
         static bool show_demo_window = false, show_another_window = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -336,7 +340,10 @@ private:
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &show_another_window);
-
+            ImGui::Text("Choose rotation axis:");
+            ImGui::RadioButton("X-axis", &axis, 2); ImGui::SameLine();
+            ImGui::RadioButton("Y-axis", &axis, 1); ImGui::SameLine();
+            ImGui::RadioButton("Z-axis", &axis, 0);
             ImGui::SliderFloat("scale", &scale, 1.0f, 3.0f);
             ImGui::SliderFloat("speed", &speed, 0.5f, 4.0f);
 //            ImGui::ColorEdit3("clear color", (float *) &clear_color); // Edit 3 floats representing a color
@@ -420,15 +427,15 @@ private:
 
     }
 
-    void updateUniformBuffer(uint32_t currentImage, float scale, float speed){
+    void updateUniformBuffer(uint32_t currentImage){
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime-startTime).count();
-
+        auto rotationAxis = (axis == 0) ? glm::vec3(0.0f, 0.0f, 1.0f) : (axis == 1) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
         UniformBufferObject ubo{};
         ubo.model = glm::scale(glm::mat4(1.0f), glm::vec3(scale)) * glm::rotate(glm::mat4(1.0f), speed * time * glm::radians(90.0f),
-                                glm::vec3(0.0f, 0.0f, 1.0f));
+                                rotationAxis);
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                                glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height,
@@ -832,7 +839,7 @@ private:
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT & VK_CULL_MODE_BACK_BIT; // TODO Desativar depois
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
