@@ -2,25 +2,26 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define STB_IMAGE_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
+#define GLM_ENABLE_EXPERIMENTAL
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
 #include "external/imgui/imgui.h"
 #include "external/imgui/imgui_impl_glfw.h"
 #include "external/imgui/imgui_impl_vulkan.h"
 #include "external/stbimage/stb_image.h"
+#include "external/objloader/tiny_obj_loader.h"
 
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
-#include <cstring>
 #include <optional>
 #include <set>
 #include <limits>
 #include <algorithm>
-#include <fstream>
-#include <sstream>
 #include <array>
 #include <chrono>
 
@@ -98,6 +99,10 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+    bool operator ==(const Vertex& other) const{
+        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+    }
+
     static VkVertexInputBindingDescription getBindingDescription(){
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -129,28 +134,62 @@ struct Vertex {
     }
 };
 
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                     (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+}
+
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
 
-const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f, 0.25f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f, 0.25f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.25f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-0.5f, 0.5f, 0.25f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-        {{-0.5f, -0.5f, -0.25f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, -0.5f, -0.25f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, 0.5f, -0.25f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-        {{-0.5f, 0.5f, -0.25f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> indices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4
-};
+//const std::vector<Vertex> vertices = {
+//        {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+//        {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+//        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+//        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+//
+//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+//        {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+//        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+//        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+//
+//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+//        {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+//        {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+//        {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+//
+//        {{-0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+//        {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+//        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+//        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+//
+//        {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+//        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+//        {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+//        {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+//
+//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+//        {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+//        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+//        {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+//};
+//
+//const std::vector<uint16_t> indices = {
+//        0, 1, 2, 2, 3, 0,
+//        4, 5, 6, 6, 7, 4,
+//        8, 9, 10, 10, 11, 8,
+//        12, 13, 14, 14, 15, 12,
+//        16, 17, 18, 18, 19, 16,
+//        20, 21, 22, 22, 23, 20,
+//};
 
 bool forward = false, backward = false, up = false, down = false, left = false, right = false;
 
@@ -165,6 +204,9 @@ public:
     }
 
 private:
+    const std::string modelPath = "../models/viking_room.obj";
+    const std::string texturePath = "../textures/viking_room.png";
+
     GLFWwindow* window{};
     VkInstance instance{};
     VkDebugUtilsMessengerEXT debugMessenger{};
@@ -190,10 +232,12 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores{};
     std::vector<VkFence> inFlightFences{};
     VkCommandPool commandPool{};
-
     std::vector<VkCommandBuffer> commandBuffers{};
-    VkBuffer vertexBuffer{};
 
+    std::vector<Vertex> vertices{};
+    std::vector<uint32_t> indices{};
+
+    VkBuffer vertexBuffer{};
     VkDeviceMemory vertexBufferMemory{};
     VkBuffer indexBuffer{};
     VkDeviceMemory indexBufferMemory{};
@@ -225,8 +269,9 @@ private:
     uint32_t currentFrame = 0;
 
     //imgui stuff
-    float scale = 1, speed = 1;
+    float scale = 1, speed = 0;
     int axis = 0;
+    bool resetPos = true;
 
     // movement
     float cameraSpeed = 1e-3;
@@ -430,13 +475,13 @@ private:
             ImGui::RadioButton("X-axis", &axis, 2); ImGui::SameLine();
             ImGui::RadioButton("Y-axis", &axis, 1); ImGui::SameLine();
             ImGui::RadioButton("Z-axis", &axis, 0);
+            ImGui::Checkbox("Reset Position", &resetPos);
             ImGui::SliderFloat("scale", &scale, 0.1f, 4.0f);
             ImGui::SliderFloat("speed", &speed, -4.0f, 4.0f);
 //            static auto color = glm::vec3(0.0f);
 //            ImGui::ColorEdit3("clear color", (float *) &color);
 
-            if (ImGui::Button("Button"))
-                counter++;
+            if (ImGui::Button("Reset speed")) speed = 0;
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
 
@@ -486,7 +531,7 @@ private:
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(curCommandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(curCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(curCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -520,12 +565,20 @@ private:
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime-startTime).count();
-        auto rotationAxis = (axis == 0) ? glm::vec3(0.0f, 0.0f, 1.0f) : (axis == 1) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime-startTime).count();
+        static std::array<float, 3> angles = {0, 0, 0};
+        if (resetPos){
+            for (int i = 0; i < angles.size(); ++i) {
+                if (i != axis) angles[i] = 0;
+            }
+        }
+        angles[axis] += speed * deltaTime * glm::radians(90.0f);
 
         UniformBufferObject ubo{};
         ubo.model = glm::scale(glm::mat4(1.0f), glm::vec3(scale))
-                * glm::rotate(glm::mat4(1.0f), speed * time * glm::radians(90.0f),rotationAxis);
+                * glm::rotate(glm::mat4(1.0f), angles[0],glm::vec3(0.0f, 0.0f, 1.0f))
+                * glm::rotate(glm::mat4(1.0f), angles[1],glm::vec3(0.0f, 1.0f, 0.0f))
+                * glm::rotate(glm::mat4(1.0f), angles[2],glm::vec3(1.0f, 0.0f, 0.0f));
         ubo.view = glm::lookAt(pos, pos + dir,cameraPlane);
         ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height,
                                     0.1f, 100.0f);
@@ -535,6 +588,7 @@ private:
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
         vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+        startTime = std::chrono::high_resolution_clock::now();
     }
 
     void cleanup() {
@@ -602,6 +656,7 @@ private:
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+        loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
@@ -610,6 +665,42 @@ private:
         createCommandBuffer();
         createSyncObjects();
         initImGuiVulkan();
+    }
+
+    void loadModel() {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str())) {
+            throw std::runtime_error(warn + err);
+        }
+
+        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+        for (const auto& shape: shapes) {
+            for (const auto& index : shape.mesh.indices) {
+                Vertex vertex{};
+                vertex.pos = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2],
+                };
+                vertex.texCoord = {
+                        attrib.texcoords[2 * index.texcoord_index],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
+                };
+                vertex.color = {1.0f, 1.0f, 1.0f};
+
+                if (uniqueVertices.count(vertex) == 0){
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+                indices.push_back(uniqueVertices[vertex]);
+            }
+        }
     }
 
     void createDepthResources() {
@@ -655,7 +746,7 @@ private:
 
     void createTextureImage() {
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("../textures/ic.jpeg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
         if (!pixels)
             throw std::runtime_error("failed to load texture!");
@@ -1070,7 +1161,7 @@ private:
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT & VK_CULL_MODE_BACK_BIT; // TODO Desativar depois
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -1269,11 +1360,11 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-        queueFamily = indices.graphicsFamily.value();
+        QueueFamilyIndices familyIndices = findQueueFamilies(physicalDevice);
+        uint32_t queueFamilyIndices[] = {familyIndices.graphicsFamily.value(), familyIndices.presentFamily.value()};
+        queueFamily = familyIndices.graphicsFamily.value();
 
-        if (indices.graphicsFamily != indices.presentFamily) {
+        if (familyIndices.graphicsFamily != familyIndices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -1310,10 +1401,10 @@ private:
     }
 
     void createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        QueueFamilyIndices familyIndices = findQueueFamilies(physicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        std::set<uint32_t> uniqueQueueFamilies = {familyIndices.graphicsFamily.value(), familyIndices.presentFamily.value()};
 
         float queuePriority = 1.0f;
         for (uint32_t uQueueFamily : uniqueQueueFamilies) {
@@ -1347,8 +1438,8 @@ private:
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
-        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+        vkGetDeviceQueue(device, familyIndices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, familyIndices.presentFamily.value(), 0, &presentQueue);
     }
 
     void cleanUpSwapChain(){
@@ -1663,7 +1754,7 @@ private:
     }
 
     bool isDeviceSuitable(VkPhysicalDevice pDevice) { // Add real checks later
-        QueueFamilyIndices indices = findQueueFamilies(pDevice);
+        QueueFamilyIndices familyIndices = findQueueFamilies(pDevice);
 
         bool extensionsSupported = checkDeviceExtensionSupport(pDevice);
 
@@ -1676,7 +1767,7 @@ private:
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+        return familyIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
     }
 
     static bool checkDeviceExtensionSupport(VkPhysicalDevice pDevice){
@@ -1816,7 +1907,7 @@ private:
     }
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice pDevice) {
-        QueueFamilyIndices indices;
+        QueueFamilyIndices familyIndices;
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount, nullptr);
 
@@ -1826,19 +1917,19 @@ private:
         int i = 0;
         for (const auto& iQueueFamily : queueFamilies){
             if (iQueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
-                indices.graphicsFamily = i;
+                familyIndices.graphicsFamily = i;
             }
 
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(pDevice, i, surface, &presentSupport);
-            if (presentSupport) indices.presentFamily = i;
+            if (presentSupport) familyIndices.presentFamily = i;
 
-            if (indices.isComplete()) break;
+            if (familyIndices.isComplete()) break;
 
             i++;
         }
 
-        return indices;
+        return familyIndices;
     }
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice pDevice){
