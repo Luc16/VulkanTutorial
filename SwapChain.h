@@ -29,8 +29,7 @@ namespace vtt {
 
         static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice pDevice, VkSurfaceKHR surface);
 
-        VkSwapchainKHR get() { return swapChain; }
-
+        [[nodiscard]] VkSwapchainKHR get() const { return swapChain; }
         [[nodiscard]] uint32_t imageCount() const { return imgCount; }
         [[nodiscard]] uint32_t numImages() const { return swapChainImages.size(); }
         [[nodiscard]] uint32_t queueFamily() const { return qFamily; }

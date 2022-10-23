@@ -23,6 +23,7 @@
 #include <array>
 #include <chrono>
 #include <memory>
+#include <cstring>
 
 namespace vtt {
     struct QueueFamilyIndices {
@@ -35,9 +36,27 @@ namespace vtt {
         }
     };
 
+    // TODO these will be in the device class
+
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice pDevice, VkSurfaceKHR surface);
+    uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 
     VkImageView createImageView(VkDevice lDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+
+    // TODO these will be in the device class
+
+    void executeSingleCommand(VkDevice device, VkCommandPool commandPool, VkQueue queue, const std::function<void(VkCommandBuffer&)>& function);
+
+
+    void copyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer buffer,
+                                   VkImage image, uint32_t width, uint32_t height);
+
+    void createBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size,
+                              VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+    void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
 }
 
 
