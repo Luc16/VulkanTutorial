@@ -22,7 +22,7 @@
 //
 // More docs to come.
 //
-// No memory allocations; uses qsort() and assert() from stdlib.
+// No m_memory allocations; uses qsort() and assert() from stdlib.
 // Can override those by defining STBRP_SORT and STBRP_ASSERT.
 //
 // This library currently uses the Skyline Bottom-Left algorithm.
@@ -138,7 +138,7 @@ STBRP_DEF void stbrp_init_target (stbrp_context *context, int width, int height,
 //
 // You must call this function every time you start packing into a new target.
 //
-// There is no "shutdown" function. The 'nodes' memory must stay valid for
+// There is no "shutdown" function. The 'nodes' m_memory must stay valid for
 // the following stbrp_pack_rects() call (or calls), but can be freed after
 // the call (or calls) finish.
 //
@@ -154,7 +154,7 @@ STBRP_DEF void stbrp_init_target (stbrp_context *context, int width, int height,
 
 STBRP_DEF void stbrp_setup_allow_out_of_mem (stbrp_context *context, int allow_out_of_mem);
 // Optionally call this function after init but before doing any packing to
-// change the handling of the out-of-temp-memory scenario, described above.
+// change the handling of the out-of-temp-m_memory scenario, described above.
 // If you call init again, this will be reset to the default (false).
 
 
@@ -174,7 +174,7 @@ enum
 //////////////////////////////////////////////////////////////////////////////
 //
 // the details of the following structures don't matter to you, but they must
-// be visible so you can handle the memory allocations for them
+// be visible so you can handle the m_memory allocations for them
 
 struct stbrp_node
 {
@@ -245,13 +245,13 @@ STBRP_DEF void stbrp_setup_heuristic(stbrp_context *context, int heuristic)
 STBRP_DEF void stbrp_setup_allow_out_of_mem(stbrp_context *context, int allow_out_of_mem)
 {
    if (allow_out_of_mem)
-      // if it's ok to run out of memory, then don't bother aligning them;
+      // if it's ok to run out of m_memory, then don't bother aligning them;
       // this gives better packing, but may fail due to OOM (even though
       // the rectangles easily fit). @TODO a smarter approach would be to only
       // quantize once we've hit OOM, then we could get rid of this parameter.
       context->align = 1;
    else {
-      // if it's not ok to run out of memory, then quantize the widths
+      // if it's not ok to run out of m_memory, then quantize the widths
       // so that num_nodes is always enough nodes.
       //
       // I.e. num_nodes * align >= width
@@ -455,7 +455,7 @@ static stbrp__findresult stbrp__skyline_pack_rectangle(stbrp_context *context, i
    // bail if:
    //    1. it failed
    //    2. the best node doesn't fit (we don't always check this)
-   //    3. we're out of memory
+   //    3. we're out of m_memory
    if (res.prev_link == NULL || res.y + height > context->height || context->free_head == NULL) {
       res.prev_link = NULL;
       return res;

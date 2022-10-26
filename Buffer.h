@@ -8,31 +8,33 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "utils.h"
+#include "Device.h"
 #include <GLFW/glfw3.h>
 
 namespace vtt {
     class Buffer {
     public:
 
-        Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+        Buffer(const Device& device, VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
         Buffer(const Buffer &) = delete;
         Buffer &operator=(const Buffer &) = delete;
+        ~Buffer();
 
-        [[nodiscard]] VkBuffer get() const { return buffer; }
+        [[nodiscard]] VkBuffer get() const { return m_buffer; }
 
-        void destroy(VkDevice device);
-        void map(VkDevice device);
-        void unmap(VkDevice device);
+        void map();
+        void unmap();
         void write(void* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-        void singleWrite(VkDevice device, void* data);
+        void singleWrite(void* data);
 
 
     private:
-        VkBuffer buffer = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
-        void* mapped = nullptr;
+        VkBuffer m_buffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_memory = VK_NULL_HANDLE;
+        void* m_mapped = nullptr;
 
-        VkDeviceSize bufferSize;
+        VkDeviceSize m_bufferSize;
+        const Device& m_deviceRef;
     };
 }
 

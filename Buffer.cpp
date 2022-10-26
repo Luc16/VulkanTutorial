@@ -6,45 +6,47 @@
 
 namespace vtt {
 
-    Buffer::Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties): bufferSize(bufferSize) {
-        createBuffer(device, physicalDevice, bufferSize, usage, properties, buffer, memory);
+    Buffer::Buffer(const Device& device, VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties):
+    m_bufferSize(bufferSize), m_deviceRef(device)
+    {
+        m_deviceRef.createBuffer(bufferSize, usage, properties, m_buffer, m_memory);
     }
 
-    void Buffer::destroy(VkDevice device) {
-        vkDestroyBuffer(device, buffer, nullptr);
-        vkFreeMemory(device, memory, nullptr);
+    Buffer::~Buffer() {
+        vkDestroyBuffer(m_deviceRef.device(), m_buffer, nullptr);
+        vkFreeMemory(m_deviceRef.device(), m_memory, nullptr);
     }
 
-    void Buffer::map(VkDevice device) {
-        if (mapped != nullptr)
-            throw std::runtime_error("Trying to map mapped buffer memory!");
-        vkMapMemory(device, memory, 0, bufferSize, 0, &mapped);
+    void Buffer::map() {
+        if (m_mapped != nullptr)
+            throw std::runtime_error("Trying to map m_mapped m_buffer m_memory!");
+        vkMapMemory(m_deviceRef.device(), m_memory, 0, m_bufferSize, 0, &m_mapped);
     }
 
-    void Buffer::unmap(VkDevice device) {
-        if (mapped == nullptr)
-            throw std::runtime_error("Trying to unmap unmapped buffer memory!");
-        vkUnmapMemory(device, memory);
-        mapped = nullptr;
+    void Buffer::unmap() {
+        if (m_mapped == nullptr)
+            throw std::runtime_error("Trying to unmap unmapped m_buffer m_memory!");
+        vkUnmapMemory(m_deviceRef.device(), m_memory);
+        m_mapped = nullptr;
     }
 
     void Buffer::write(void *data, VkDeviceSize size, VkDeviceSize offset) {
-        if (mapped == nullptr)
-            throw std::runtime_error("Trying to write to unmapped buffer memory!");
+        if (m_mapped == nullptr)
+            throw std::runtime_error("Trying to write to unmapped m_buffer m_memory!");
 
         if (size == VK_WHOLE_SIZE)
-            memcpy(mapped, data, (size_t) bufferSize);
+            memcpy(m_mapped, data, (size_t) m_bufferSize);
         else {
-            char *memOffset = (char *)mapped;
+            char *memOffset = (char *)m_mapped;
             memOffset += offset;
-            memcpy(mapped, data, (size_t) size);
+            memcpy(m_mapped, data, (size_t) size);
 
         }
     }
 
-    void Buffer::singleWrite(VkDevice device, void *data) {
-        map(device);
+    void Buffer::singleWrite(void *data) {
+        map();
         write(data);
-        unmap(device);
+        unmap();
     }
 }

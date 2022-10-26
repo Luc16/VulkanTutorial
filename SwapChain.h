@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "utils.h"
+#include "Device.h"
 #include <GLFW/glfw3.h>
 
 
@@ -15,53 +16,46 @@ namespace vtt {
     class SwapChain {
     public:
 
-        struct SwapChainSupportDetails {
-            VkSurfaceCapabilitiesKHR capabilities{};
-            std::vector<VkSurfaceFormatKHR> formats;
-            std::vector<VkPresentModeKHR> presentModes;
-        };
-
-        SwapChain(GLFWwindow *window, VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+        SwapChain(GLFWwindow *window, const Device& device);
+        ~SwapChain();
 
         SwapChain(const SwapChain &) = delete;
 
         SwapChain &operator=(const SwapChain &) = delete;
 
-        static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice pDevice, VkSurfaceKHR surface);
 
-        [[nodiscard]] VkSwapchainKHR get() const { return swapChain; }
-        [[nodiscard]] uint32_t imageCount() const { return imgCount; }
-        [[nodiscard]] uint32_t numImages() const { return swapChainImages.size(); }
-        [[nodiscard]] uint32_t queueFamily() const { return qFamily; }
-        [[nodiscard]] VkFormat format() const { return imageFormat; }
-        [[nodiscard]] VkExtent2D extent() const { return swapChainExtent; }
-        [[nodiscard]] uint32_t width() const { return swapChainExtent.width; }
-        [[nodiscard]] uint32_t height() const { return swapChainExtent.height; }
-        [[nodiscard]] std::vector<VkImageView> imageViews() const { return swapChainImageViews; }
-        [[nodiscard]] VkImageView imageViews(uint32_t i) const { return swapChainImageViews[i]; }
-        [[nodiscard]] size_t numImageViews() const { return swapChainImageViews.size(); }
-        [[nodiscard]] std::vector<VkFramebuffer> frameBuffers() const { return swapChainFramebuffers; }
-        [[nodiscard]] VkFramebuffer frameBuffers(uint32_t i) const { return swapChainFramebuffers[i]; }
-        [[nodiscard]] size_t numFrameBuffers() const { return swapChainFramebuffers.size(); }
-        void resizeFrameBuffer(size_t newSize) { return swapChainFramebuffers.resize(newSize); }
-
-        void destroySwapChain(VkDevice device);
+        [[nodiscard]] VkSwapchainKHR get() const { return m_swapChain; }
+        [[nodiscard]] uint32_t imageCount() const { return m_imgCount; }
+        [[nodiscard]] uint32_t numImages() const { return m_swapChainImages.size(); }
+        [[nodiscard]] uint32_t queueFamily() const { return m_queueFamily; }
+        [[nodiscard]] VkFormat format() const { return m_imageFormat; }
+        [[nodiscard]] VkExtent2D extent() const { return m_swapChainExtent; }
+        [[nodiscard]] uint32_t width() const { return m_swapChainExtent.width; }
+        [[nodiscard]] uint32_t height() const { return m_swapChainExtent.height; }
+        [[nodiscard]] std::vector<VkImageView> imageViews() const { return m_swapChainImageViews; }
+        [[nodiscard]] VkImageView imageViews(uint32_t i) const { return m_swapChainImageViews[i]; }
+        [[nodiscard]] size_t numImageViews() const { return m_swapChainImageViews.size(); }
+        [[nodiscard]] std::vector<VkFramebuffer> frameBuffers() const { return m_swapChainFramebuffers; }
+        [[nodiscard]] VkFramebuffer frameBuffers(uint32_t i) const { return m_swapChainFramebuffers[i]; }
+        [[nodiscard]] size_t numFrameBuffers() const { return m_swapChainFramebuffers.size(); }
+        void resizeFrameBuffer(size_t newSize) { return m_swapChainFramebuffers.resize(newSize); }
 
 
-        void createFrameBuffers(VkDevice device, VkRenderPass renderPass, std::array<VkImageView, 2> images);
+        void createFrameBuffers(VkRenderPass renderPass, std::array<VkImageView, 2> images);
 
     private:
-        VkSwapchainKHR swapChain{};
+        VkSwapchainKHR m_swapChain{};
 
-        uint32_t imgCount{};
-        uint32_t qFamily{};
-        std::vector<VkImage> swapChainImages;
-        VkFormat imageFormat{};
-        VkExtent2D swapChainExtent{};
-        std::vector<VkImageView> swapChainImageViews;
-        std::vector<VkFramebuffer> swapChainFramebuffers;
+        uint32_t m_imgCount{};
+        uint32_t m_queueFamily{};
+        std::vector<VkImage> m_swapChainImages;
+        VkFormat m_imageFormat{};
+        VkExtent2D m_swapChainExtent{};
+        std::vector<VkImageView> m_swapChainImageViews;
+        std::vector<VkFramebuffer> m_swapChainFramebuffers;
+        const Device& m_deviceRef;
 
-        void createImageViews(VkDevice device);
+        void createImageViews();
 
         static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 

@@ -4,31 +4,31 @@
 
 #include "SwapChain.h"
 namespace vtt {
-    SwapChain::SwapChain(GLFWwindow *window, VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
+    SwapChain::SwapChain(GLFWwindow *window, const Device& device): m_deviceRef(device) {
+        Device::SwapChainSupportDetails swapChainSupport = m_deviceRef.querySwapChainSupport(m_deviceRef.physicalDevice());
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(window, swapChainSupport.capabilities);
 
-        imgCount = swapChainSupport.capabilities.minImageCount + 1;
+        m_imgCount = swapChainSupport.capabilities.minImageCount + 1;
 
-        if (swapChainSupport.capabilities.maxImageCount > 0 && imgCount > swapChainSupport.capabilities.maxImageCount)
-            imgCount = swapChainSupport.capabilities.maxImageCount;
+        if (swapChainSupport.capabilities.maxImageCount > 0 && m_imgCount > swapChainSupport.capabilities.maxImageCount)
+            m_imgCount = swapChainSupport.capabilities.maxImageCount;
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface;
-        createInfo.minImageCount = imgCount;
+        createInfo.surface = m_deviceRef.surface();
+        createInfo.minImageCount = m_imgCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices familyIndices = findQueueFamilies(physicalDevice, surface);
+        Device::QueueFamilyIndices familyIndices = m_deviceRef.findQueueFamilies(m_deviceRef.physicalDevice());
         uint32_t queueFamilyIndices[] = {familyIndices.graphicsFamily.value(), familyIndices.presentFamily.value()};
-        qFamily = familyIndices.graphicsFamily.value();
+        m_queueFamily = familyIndices.graphicsFamily.value();
 
         if (familyIndices.graphicsFamily != familyIndices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -47,33 +47,43 @@ namespace vtt {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(m_deviceRef.device(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(device, swapChain, &imgCount, nullptr);
-        swapChainImages.resize(imgCount);
-        vkGetSwapchainImagesKHR(device, swapChain, &imgCount, swapChainImages.data());
+        vkGetSwapchainImagesKHR(m_deviceRef.device(), m_swapChain, &m_imgCount, nullptr);
+        m_swapChainImages.resize(m_imgCount);
+        vkGetSwapchainImagesKHR(device.device(), m_swapChain, &m_imgCount, m_swapChainImages.data());
 
-        imageFormat = surfaceFormat.format;
-        swapChainExtent = extent;
+        m_imageFormat = surfaceFormat.format;
+        m_swapChainExtent = extent;
 
-        createImageViews(device);
+        createImageViews();
 
     }
+    SwapChain::~SwapChain() {
+        for (auto imageView: m_swapChainImageViews) {
+            vkDestroyImageView(m_deviceRef.device(), imageView, nullptr);
+        }
+        for (auto framebuffer : m_swapChainFramebuffers) {
+            vkDestroyFramebuffer(m_deviceRef.device(), framebuffer, nullptr);
+        }
+        vkDestroySwapchainKHR(m_deviceRef.device(), m_swapChain, nullptr);
+    }
 
-    void SwapChain::createImageViews(VkDevice device) {
-        swapChainImageViews.resize(swapChainImages.size());
 
-        for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-            swapChainImageViews[i] = createImageView(device, swapChainImages[i], imageFormat, VK_IMAGE_ASPECT_COLOR_BIT,
-                                                     1);
+    void SwapChain::createImageViews() {
+        m_swapChainImageViews.resize(m_swapChainImages.size());
+
+        for (size_t i = 0; i < m_swapChainImageViews.size(); ++i) {
+            m_swapChainImageViews[i] = createImageView(m_deviceRef.device(), m_swapChainImages[i], m_imageFormat, VK_IMAGE_ASPECT_COLOR_BIT,
+                                                       1);
         }
     }
 
-    void SwapChain::createFrameBuffers(VkDevice device, VkRenderPass renderPass, std::array<VkImageView, 2> images){
-        swapChainFramebuffers.resize(numImageViews());
-        for (uint32_t i = 0; i < swapChainFramebuffers.size(); i++) {
+    void SwapChain::createFrameBuffers(VkRenderPass renderPass, std::array<VkImageView, 2> images){
+        m_swapChainFramebuffers.resize(numImageViews());
+        for (uint32_t i = 0; i < m_swapChainFramebuffers.size(); i++) {
             std::array<VkImageView, 3> attachments = {images[0], images[1], imageViews(i)};
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -85,46 +95,10 @@ namespace vtt {
             framebufferInfo.height = height();
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(m_deviceRef.device(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
-    }
-
-    void SwapChain::destroySwapChain(VkDevice device) {
-        for (auto imageView: swapChainImageViews) {
-            vkDestroyImageView(device, imageView, nullptr);
-        }
-        for (auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        }
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
-    }
-
-    SwapChain::SwapChainSupportDetails
-    SwapChain::querySwapChainSupport(VkPhysicalDevice pDevice, VkSurfaceKHR surface) {
-        SwapChainSupportDetails details;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pDevice, surface, &details.capabilities);
-
-        uint32_t formatCount = 0;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(pDevice, surface, &formatCount, nullptr);
-
-        if (formatCount != 0) {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(pDevice, surface, &formatCount, details.formats.data());
-
-        }
-
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(pDevice, surface, &presentModeCount, nullptr);
-
-        if (presentModeCount != 0) {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(pDevice, surface, &presentModeCount, details.presentModes.data());
-        }
-
-        return details;
     }
 
     VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
