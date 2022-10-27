@@ -26,7 +26,6 @@
 #include <cstring>
 
 namespace vtt {
-    VkImageView createImageView(VkDevice lDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
 }
 
