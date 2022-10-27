@@ -6,6 +6,7 @@
 #define VULKANTUTORIAL_WINDOW_H
 
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 namespace vtt {
     class Window {
@@ -19,6 +20,11 @@ namespace vtt {
         ~Window();
 
         [[nodiscard]] GLFWwindow* window() const { return m_window; }
+        [[nodiscard]] bool shouldClose() const { return glfwWindowShouldClose(m_window); }
+        [[nodiscard]] bool frameBufferResized() const { return m_frameBufferResized; }
+        void frameBufferNotResized() { m_frameBufferResized = false; }
+        [[nodiscard]] VkExtent2D extent() const {return {static_cast<uint32_t>(m_width), static_cast<uint32_t>(m_height)};}
+
     private:
         static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
