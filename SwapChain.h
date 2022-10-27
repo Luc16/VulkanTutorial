@@ -9,6 +9,7 @@
 #include <vector>
 #include "utils.h"
 #include "Device.h"
+#include "Image.h"
 #include <GLFW/glfw3.h>
 
 
@@ -16,7 +17,8 @@ namespace vtt {
     class SwapChain {
     public:
 
-        SwapChain(GLFWwindow *window, const Device& device);
+        SwapChain(const Device& device, VkExtent2D windowExtent);
+
         ~SwapChain();
 
         SwapChain(const SwapChain &) = delete;
@@ -29,6 +31,7 @@ namespace vtt {
         [[nodiscard]] uint32_t numImages() const { return m_swapChainImages.size(); }
         [[nodiscard]] uint32_t queueFamily() const { return m_queueFamily; }
         [[nodiscard]] VkFormat format() const { return m_imageFormat; }
+        [[nodiscard]] VkRenderPass renderPass() const { return m_renderPass; }
         [[nodiscard]] VkExtent2D extent() const { return m_swapChainExtent; }
         [[nodiscard]] uint32_t width() const { return m_swapChainExtent.width; }
         [[nodiscard]] uint32_t height() const { return m_swapChainExtent.height; }
@@ -41,27 +44,43 @@ namespace vtt {
         void resizeFrameBuffer(size_t newSize) { return m_swapChainFramebuffers.resize(newSize); }
 
 
-        void createFrameBuffers(VkRenderPass renderPass, std::array<VkImageView, 2> images);
 
     private:
-        VkSwapchainKHR m_swapChain{};
-
-        uint32_t m_imgCount{};
-        uint32_t m_queueFamily{};
-        std::vector<VkImage> m_swapChainImages;
-        VkFormat m_imageFormat{};
-        VkExtent2D m_swapChainExtent{};
-        std::vector<VkImageView> m_swapChainImageViews;
-        std::vector<VkFramebuffer> m_swapChainFramebuffers;
-        const Device& m_deviceRef;
-
+        void createSwapChain();
         void createImageViews();
+        void createRenderPass();
+        void createDepthResources();
+        void createColorResources();
+        void createFrameBuffers();
 
         static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
         static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-        static VkExtent2D chooseSwapExtent(GLFWwindow *window, const VkSurfaceCapabilitiesKHR &capabilities);
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+
+        VkFormat findDepthFormat();
+
+        VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
+                            VkFormatFeatureFlags features);
+
+
+        VkSwapchainKHR m_swapChain{};
+
+        uint32_t m_imgCount{};
+        uint32_t m_queueFamily{};
+        VkFormat m_imageFormat{};
+        VkExtent2D m_swapChainExtent{};
+        std::vector<VkImage> m_swapChainImages;
+        std::vector<VkImageView> m_swapChainImageViews;
+        std::vector<VkFramebuffer> m_swapChainFramebuffers;
+
+        const Device& m_deviceRef;
+        VkExtent2D m_windowExtent;
+        VkRenderPass m_renderPass{};
+
+        std::unique_ptr<Image> m_colorImage;
+        std::unique_ptr<Image> m_depthImage;
     };
 }
 
