@@ -171,6 +171,7 @@ private:
     VkPipeline graphicsPipelineLine{};
 
     // update
+    //TODO mandar pra swapchain
     std::vector<VkSemaphore> imageAvailableSemaphores{};
     std::vector<VkSemaphore> renderFinishedSemaphores{};
     std::vector<VkFence> inFlightFences{};
@@ -230,6 +231,7 @@ private:
 
     }
 
+    // TODO olhar funções para ver se acha alguma coisa que deva ser delegada
     void mainLoop() {
         startTime = glfwGetTime();
         while (!window.shouldClose()) {
@@ -546,17 +548,22 @@ private:
     void initVulkan() {
         swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
         createDescriptorSetLayout();
+        // pipeline
         createGraphicsPipeline();
+        // model
         createTextureImage();
         createTextureSampler();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+        // descriptor
         createDescriptorPool();
         createDescriptorSets();
         createCommandBuffer();
+        // swapchain
         createSyncObjects();
+        // control
         initImGuiVulkan();
     }
 
@@ -1050,8 +1057,7 @@ private:
         vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
 
     }
-
-
+    
     VkShaderModule createShaderModule(const std::vector<char>& code){
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
