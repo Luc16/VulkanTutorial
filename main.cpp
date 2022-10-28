@@ -1,10 +1,11 @@
 #define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define STB_IMAGE_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
 #define GLM_ENABLE_EXPERIMENTAL
+#define STB_IMAGE_IMPLEMENTATION
 
+#include <sstream>
+#include <fstream>
 #include "external/imgui/imgui.h"
 #include "external/imgui/imgui_impl_glfw.h"
 #include "external/imgui/imgui_impl_vulkan.h"
@@ -13,6 +14,7 @@
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Image.h"
+#include "Model.h"
 #include "utils.h"
 
 const uint32_t WIDTH = 1000;
@@ -42,55 +44,7 @@ static std::vector<char> readFile(const std::string& filename){
     return buffer;
 }
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
 
-    bool operator ==(const Vertex& other) const{
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
-    }
-
-    static VkVertexInputBindingDescription getBindingDescription(){
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions(){
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-
-        return attributeDescriptions;
-    }
-};
-
-namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.pos) ^
-                     (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-                   (hash<glm::vec2>()(vertex.texCoord) << 1);
-        }
-    };
-}
 
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
@@ -169,13 +123,8 @@ private:
     VkPipeline graphicsPipelineFill{};
     VkPipeline graphicsPipelineLine{};
 
+    std::unique_ptr<vtt::Model> model;
 
-    // update +/-
-    std::vector<Vertex> vertices{};// TODO TIRARRRRR
-    std::vector<uint32_t> indices{};
-
-    std::unique_ptr<vtt::Buffer> vertexBuffer;
-    std::unique_ptr<vtt::Buffer> indexBuffer;
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
 
     // config
@@ -190,15 +139,17 @@ private:
     // update
     std::vector<VkDescriptorSet> descriptorSets;
 
+    // camera
     glm::vec3 pos{2.0f, 2.0f, 2.0f};
     glm::vec3 dir{-1.0f, -1.0f, -1.0f};
     glm::vec3 cameraPlane{-1.0f, 0.0f, 1.0f};
 
+    // fps
     double startTime{};
     uint32_t frames = 0;
     uint32_t currentFrame = 0;
 
-    //imgui stuffheight
+    //imgui stuff
     float scale = 1, speed = 0;
     int axis = 0;
     bool resetPos = true;
@@ -218,7 +169,6 @@ private:
 
     }
 
-    // TODO olhar funções para ver se acha alguma coisa que deva ser delegada
     void mainLoop() {
         startTime = glfwGetTime();
         while (!window.shouldClose()) {
@@ -400,14 +350,11 @@ private:
         if (lineMode) vkCmdBindPipeline(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLine);
         else vkCmdBindPipeline(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineFill);
 
-        VkBuffer vertexBuffers[] = {vertexBuffer->get()};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(curCommandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(curCommandBuffer, indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
+        model->bind(curCommandBuffer);
 
         vkCmdBindDescriptorSets(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(curCommandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        model->draw(curCommandBuffer);
 
         ImGui_ImplVulkan_RenderDrawData(drawData, curCommandBuffer);
 
@@ -470,11 +417,9 @@ private:
         // pipeline
         createGraphicsPipeline();
         // model
+        model = vtt::Model::createModelFromFile(device, modelPath);
         createTextureImage();
         createTextureSampler();
-        loadModel();
-        createVertexBuffer();
-        createIndexBuffer();
         createUniformBuffers();
         // descriptor
         createDescriptorPool();
@@ -482,43 +427,6 @@ private:
         createCommandBuffer();
         // control
         initImGuiVulkan();
-    }
-
-
-    void loadModel() {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str())) {
-            throw std::runtime_error(warn + err);
-        }
-
-        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-        for (const auto& shape: shapes) {
-            for (const auto& index : shape.mesh.indices) {
-                Vertex vertex{};
-                vertex.pos = {
-                        attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
-                        attrib.vertices[3 * index.vertex_index + 2],
-                };
-                vertex.texCoord = {
-                        attrib.texcoords[2 * index.texcoord_index],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
-                };
-                vertex.color = {1.0f, 1.0f, 1.0f};
-
-                if (uniqueVertices.count(vertex) == 0){
-                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                    vertices.push_back(vertex);
-                }
-
-                indices.push_back(uniqueVertices[vertex]);
-            }
-        }
     }
 
     void createTextureSampler() {
@@ -763,33 +671,6 @@ private:
 
     }
 
-    void createVertexBuffer(){
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-        vtt::Buffer stagingBuffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        stagingBuffer.singleWrite(vertices.data());
-
-        vertexBuffer = std::make_unique<vtt::Buffer>(device, bufferSize,
-                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        device.copyBuffer(stagingBuffer.get(), vertexBuffer->get(), bufferSize);
-    }
-
-    void createIndexBuffer(){
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-        vtt::Buffer stagingBuffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        stagingBuffer.singleWrite(indices.data());
-
-        indexBuffer = std::make_unique<vtt::Buffer>(device, bufferSize,
-                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        device.copyBuffer(stagingBuffer.get(), indexBuffer->get(), bufferSize);
-    }
-
     void createCommandBuffer(){
         commandBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
 
@@ -826,8 +707,8 @@ private:
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageInfo};
 
-        auto bindingDescription = Vertex::getBindingDescription();
-        auto attributeDescription = Vertex::getAttributeDescriptions();
+        auto bindingDescription = vtt::Model::Vertex::getBindingDescription();
+        auto attributeDescription = vtt::Model::Vertex::getAttributeDescriptions();
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -1066,7 +947,6 @@ private:
 
 
     }
-
 
 
 };
