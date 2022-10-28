@@ -16,6 +16,7 @@
 namespace vtt {
     class SwapChain {
     public:
+        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         SwapChain(const Device& device, VkExtent2D windowExtent);
 
@@ -41,9 +42,11 @@ namespace vtt {
         [[nodiscard]] std::vector<VkFramebuffer> frameBuffers() const { return m_swapChainFramebuffers; }
         [[nodiscard]] VkFramebuffer frameBuffers(uint32_t i) const { return m_swapChainFramebuffers[i]; }
         [[nodiscard]] size_t numFrameBuffers() const { return m_swapChainFramebuffers.size(); }
-        void resizeFrameBuffer(size_t newSize) { return m_swapChainFramebuffers.resize(newSize); }
 
-
+        VkResult acquireNextImage(uint32_t* imageIndex);
+        VkResult submitCommandBuffers(const VkCommandBuffer* buffers, const uint32_t* imageIndex);
+        void beginRenderPass(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
+        void endRenderPass(VkCommandBuffer commandBuffer) const;
 
     private:
         void createSwapChain();
@@ -52,6 +55,7 @@ namespace vtt {
         void createDepthResources();
         void createColorResources();
         void createFrameBuffers();
+        void createSyncObjects();
 
         static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
@@ -81,6 +85,11 @@ namespace vtt {
 
         std::unique_ptr<Image> m_colorImage;
         std::unique_ptr<Image> m_depthImage;
+
+        std::vector<VkSemaphore> m_imageAvailableSemaphores{};
+        std::vector<VkSemaphore> m_renderFinishedSemaphores{};
+        std::vector<VkFence> m_inFlightFences{};
+        uint32_t currentFrame;
     };
 }
 

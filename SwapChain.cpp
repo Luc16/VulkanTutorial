@@ -11,10 +11,16 @@ namespace vtt {
         createColorResources();
         createDepthResources();
         createFrameBuffers();
+        createSyncObjects();
 
     }
 
     SwapChain::~SwapChain() {
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
+            vkDestroySemaphore(m_deviceRef.device(), m_imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(m_deviceRef.device(), m_renderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(m_deviceRef.device(), m_inFlightFences[i], nullptr);
+        }
         for (auto imageView: m_swapChainImageViews) {
             vkDestroyImageView(m_deviceRef.device(), imageView, nullptr);
         }
@@ -23,6 +29,87 @@ namespace vtt {
         }
         vkDestroyRenderPass(m_deviceRef.device(), m_renderPass, nullptr);
         vkDestroySwapchainKHR(m_deviceRef.device(), m_swapChain, nullptr);
+    }
+
+    VkResult SwapChain::acquireNextImage(uint32_t* imageIndex){
+        vkWaitForFences(m_deviceRef.device(), 1, &m_inFlightFences[currentFrame],VK_TRUE,  UINT64_MAX);
+        return vkAcquireNextImageKHR(m_deviceRef.device(), m_swapChain, UINT64_MAX, m_imageAvailableSemaphores[currentFrame],
+                              VK_NULL_HANDLE, imageIndex);
+    }
+
+    VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, const uint32_t* imageIndex) {
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphore[] = {m_imageAvailableSemaphores[currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphore;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = buffers;
+
+        VkSemaphore signalSemaphore[] = {m_renderFinishedSemaphores[currentFrame]};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphore;
+
+        vkResetFences(m_deviceRef.device(), 1, &m_inFlightFences[currentFrame]);
+        if (vkQueueSubmit(m_deviceRef.graphicsQueue(), 1, &submitInfo, m_inFlightFences[currentFrame]) != VK_SUCCESS){
+            throw std::runtime_error("failed to submit draw command m_buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphore;
+
+        VkSwapchainKHR swapChains[] = {m_swapChain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+        presentInfo.pImageIndices = imageIndex;
+        presentInfo.pResults = nullptr;
+
+        VkResult result = vkQueuePresentKHR(m_deviceRef.presentQueue(), &presentInfo);
+
+        currentFrame = (currentFrame + 1) % vtt::SwapChain::MAX_FRAMES_IN_FLIGHT;
+
+        return result;
+    }
+
+    void SwapChain::beginRenderPass(VkCommandBuffer commandBuffer, uint32_t imageIndex) const {
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass();
+        renderPassInfo.framebuffer = frameBuffers(imageIndex);
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = extent();
+
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+        clearValues[1].depthStencil = {1.0f, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(width());
+        viewport.height = static_cast<float>(height());
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = extent();
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    }
+
+    void SwapChain::endRenderPass(VkCommandBuffer commandBuffer) const {
+        vkCmdEndRenderPass(commandBuffer);
     }
 
     void SwapChain::createSwapChain() {
@@ -194,6 +281,27 @@ namespace vtt {
 
             if (vkCreateFramebuffer(m_deviceRef.device(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
+            }
+        }
+    }
+
+    void SwapChain::createSyncObjects(){
+        m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
+            if (vkCreateSemaphore(m_deviceRef.device(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(m_deviceRef.device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(m_deviceRef.device(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create semaphores!");
             }
         }
     }
