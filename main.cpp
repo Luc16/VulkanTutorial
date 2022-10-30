@@ -2,20 +2,19 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#define STB_IMAGE_IMPLEMENTATION
 
 #include <sstream>
 #include <fstream>
 #include "external/imgui/imgui.h"
 #include "external/imgui/imgui_impl_glfw.h"
 #include "external/imgui/imgui_impl_vulkan.h"
-#include "external/stbimage/stb_image.h"
 #include "external/objloader/tiny_obj_loader.h"
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Image.h"
 #include "Model.h"
 #include "utils.h"
+#include "Texture.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
@@ -114,7 +113,8 @@ private:
     vtt::Device device{window};
 
     // update
-    std::unique_ptr<vtt::SwapChain> swapChain;
+    std::unique_ptr<vtt::SwapChain> swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
+
 
     VkDescriptorSetLayout descriptorSetLayout{}; // config
 
@@ -123,16 +123,13 @@ private:
     VkPipeline graphicsPipelineFill{};
     VkPipeline graphicsPipelineLine{};
 
-    std::unique_ptr<vtt::Model> model;
+    std::unique_ptr<vtt::Model> model = vtt::Model::createModelFromFile(device, modelPath);
 
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
 
+    vtt::Texture texture{device, texturePath};
     // config
     std::vector<VkCommandBuffer> commandBuffers{};
-
-    uint32_t texMipLevels{};
-    std::unique_ptr<vtt::Image> textureImage;
-    VkSampler textureSampler{};
 
 
     VkDescriptorPool descriptorPool{};
@@ -160,8 +157,6 @@ private:
     float angleSpeed = 1e-3;
 
     void initWindow() {
-
-
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui_ImplGlfw_InitForVulkan(window.window(), true);
@@ -395,10 +390,6 @@ private:
     }
 
     void cleanup() {
-
-        vkDestroySampler(device.device(), textureSampler, nullptr);
-
-
         vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(device.device(), descriptorSetLayout, nullptr);
 
@@ -412,14 +403,9 @@ private:
     }
 
     void initVulkan() {
-        swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
         createDescriptorSetLayout();
         // pipeline
         createGraphicsPipeline();
-        // model
-        model = vtt::Model::createModelFromFile(device, modelPath);
-        createTextureImage();
-        createTextureSampler();
         createUniformBuffers();
         // descriptor
         createDescriptorPool();
@@ -427,61 +413,6 @@ private:
         createCommandBuffer();
         // control
         initImGuiVulkan();
-    }
-
-    void createTextureSampler() {
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(device.physicalDevice(), &properties);
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = static_cast<float>(texMipLevels);
-
-        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-    }
-
-    void createTextureImage() {
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
-        if (!pixels)
-            throw std::runtime_error("failed to load texture!");
-
-        texMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-
-        vtt::Buffer stagingBuffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        stagingBuffer.singleWrite(pixels);
-
-        stbi_image_free(pixels);
-
-        textureImage = std::make_unique<vtt::Image>(device, texWidth, texHeight, texMipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT ,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-        textureImage->transitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texMipLevels);
-        device.copyBufferToImage(stagingBuffer.get(), textureImage->image(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-
-        // transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
-        generateMipMaps(textureImage->image(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, texMipLevels);
-
     }
 
     static void check_vk_result(VkResult err)
@@ -562,8 +493,8 @@ private:
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImage->view();
-            imageInfo.sampler = textureSampler;
+            imageInfo.imageView = texture.view();
+            imageInfo.sampler = texture.sampler();
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -863,90 +794,7 @@ private:
         ImGui_ImplVulkan_SetMinImageCount(swapChain->imageCount());
     }
 
-    void generateMipMaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
-        VkFormatProperties formatProperties{};
-        vkGetPhysicalDeviceFormatProperties(device.physicalDevice(), imageFormat, &formatProperties);
 
-        if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-            throw std::runtime_error("texture image format does not support linear blitting!");
-        }
-
-        device.executeSingleCommand([image, texWidth, texHeight, mipLevels](VkCommandBuffer commandBuffer) {
-            VkImageMemoryBarrier barrier{};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.image = image;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.layerCount = 1;
-
-            int32_t mipWidth = texWidth;
-            int32_t mipHeight = texHeight;
-
-            for (uint32_t i = 1; i < mipLevels; ++i) {
-                barrier.subresourceRange.baseMipLevel = i - 1;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-                vkCmdPipelineBarrier(commandBuffer,
-                                     VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                                     0, nullptr,
-                                     0, nullptr,
-                                     1, &barrier);
-
-                VkImageBlit blit{};
-                blit.srcOffsets[0] = {0, 0, 0};
-                blit.srcOffsets[1] = {mipWidth, mipHeight, 1};
-                blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                blit.srcSubresource.mipLevel = i - 1;
-                blit.srcSubresource.baseArrayLayer = 0;
-                blit.srcSubresource.layerCount = 1;
-                blit.dstOffsets[0] = {0, 0, 0};
-                blit.dstOffsets[1] = {mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
-                blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                blit.dstSubresource.mipLevel = i;
-                blit.dstSubresource.baseArrayLayer = 0;
-                blit.dstSubresource.layerCount = 1;
-
-                vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               1, &blit, VK_FILTER_LINEAR);
-
-                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-                vkCmdPipelineBarrier(commandBuffer,
-                                     VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                                     0, nullptr,
-                                     0, nullptr,
-                                     1, &barrier);
-
-                if (mipWidth > 1) mipWidth /= 2;
-                if (mipHeight > 1) mipHeight /= 2;
-            }
-
-            barrier.subresourceRange.baseMipLevel = mipLevels - 1;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-            vkCmdPipelineBarrier(commandBuffer,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                                 0, nullptr,
-                                 0, nullptr,
-                                 1, &barrier);
-
-        });
-
-
-    }
 
 
 };
