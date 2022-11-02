@@ -145,6 +145,12 @@ build CMakeFiles/VulkanTutorial.dir/Texture.cpp.o: CXX_COMPILER__VulkanTutorial_
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
   OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
 
+build CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Pipeline.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o.d
+  FLAGS = -O3 -DNDEBUG
+  OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target VulkanTutorial
@@ -153,7 +159,7 @@ build CMakeFiles/VulkanTutorial.dir/Texture.cpp.o: CXX_COMPILER__VulkanTutorial_
 #############################################
 # Link the executable VulkanTutorial
 
-build VulkanTutorial: CXX_EXECUTABLE_LINKER__VulkanTutorial_Release CMakeFiles/VulkanTutorial.dir/main.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_demo.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_draw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_glfw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_vulkan.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_tables.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_widgets.cpp.o CMakeFiles/VulkanTutorial.dir/SwapChain.cpp.o CMakeFiles/VulkanTutorial.dir/utils.cpp.o CMakeFiles/VulkanTutorial.dir/Buffer.cpp.o CMakeFiles/VulkanTutorial.dir/Device.cpp.o CMakeFiles/VulkanTutorial.dir/Window.cpp.o CMakeFiles/VulkanTutorial.dir/Image.cpp.o CMakeFiles/VulkanTutorial.dir/Model.cpp.o CMakeFiles/VulkanTutorial.dir/Texture.cpp.o | /usr/lib/x86_64-linux-gnu/libglfw.so.3.3 /usr/lib/x86_64-linux-gnu/libvulkan.so
+build VulkanTutorial: CXX_EXECUTABLE_LINKER__VulkanTutorial_Release CMakeFiles/VulkanTutorial.dir/main.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_demo.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_draw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_glfw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_vulkan.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_tables.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_widgets.cpp.o CMakeFiles/VulkanTutorial.dir/SwapChain.cpp.o CMakeFiles/VulkanTutorial.dir/utils.cpp.o CMakeFiles/VulkanTutorial.dir/Buffer.cpp.o CMakeFiles/VulkanTutorial.dir/Device.cpp.o CMakeFiles/VulkanTutorial.dir/Window.cpp.o CMakeFiles/VulkanTutorial.dir/Image.cpp.o CMakeFiles/VulkanTutorial.dir/Model.cpp.o CMakeFiles/VulkanTutorial.dir/Texture.cpp.o CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o | /usr/lib/x86_64-linux-gnu/libglfw.so.3.3 /usr/lib/x86_64-linux-gnu/libvulkan.so
   FLAGS = -O3 -DNDEBUG
   LINK_LIBRARIES = -lGL  /usr/lib/x86_64-linux-gnu/libglfw.so.3.3  /usr/lib/x86_64-linux-gnu/libvulkan.so
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
