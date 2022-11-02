@@ -19,6 +19,7 @@ namespace vtt{
 #else
         const bool enableValidationLayers = true;
 #endif
+        static constexpr VkSampleCountFlagBits MAX_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
         struct QueueFamilyIndices {
             std::optional<uint32_t> graphicsFamily{};
