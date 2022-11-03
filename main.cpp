@@ -16,6 +16,7 @@
 #include "utils.h"
 #include "Texture.h"
 #include "Pipeline.h"
+#include "Renderer.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
@@ -98,7 +99,8 @@ private:
     vtt::Device device{window};
 
     // update
-    std::unique_ptr<vtt::SwapChain> swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
+//    std::unique_ptr<vtt::SwapChain> swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
+    vtt::Renderer renderer{window, device};
 
     VkDescriptorSetLayout descriptorSetLayout{}; // config
 
@@ -111,10 +113,6 @@ private:
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
 
     vtt::Texture texture{device, texturePath};
-    // config
-    std::vector<VkCommandBuffer> commandBuffers{};
-
-
 
     VkDescriptorPool descriptorPool{};
     // update
@@ -128,7 +126,6 @@ private:
     // fps
     double startTime{};
     uint32_t frames = 0;
-    uint32_t currentFrame = 0;
 
     //imgui stuff
     float scale = 1, speed = 0;
@@ -231,37 +228,21 @@ private:
     }
 
     void drawFrame(){
+        updateUniformBuffer(renderer.currentFrame());
 
-        uint32_t imageIndex;
-        VkResult result = swapChain->acquireNextImage(&imageIndex);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR){
-            recreateSwapChain();
-            return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR){
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
 
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         showImGui();
 
-        updateUniformBuffer(currentFrame);
+        renderer.runFrame([this](VkCommandBuffer commandBuffer){
+            ImGui::Render();
+            auto imGuiDrawData = ImGui::GetDrawData();
+            recordCommandBuffer(commandBuffer, imGuiDrawData);
 
-        vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+        });
 
-        ImGui::Render();
-        auto imGuiDrawData = ImGui::GetDrawData();
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, imGuiDrawData);
-
-        result = swapChain->submitCommandBuffers(&commandBuffers[currentFrame], &imageIndex);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.frameBufferResized()) {
-            window.frameBufferNotResized();
-            recreateSwapChain();
-        } else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to present swap chain image!");
-        }
-        currentFrame = (currentFrame + 1) % vtt::SwapChain::MAX_FRAMES_IN_FLIGHT;
     }
 
     void showImGui(){
@@ -313,34 +294,19 @@ private:
 
     }
 
-    void recordCommandBuffer(VkCommandBuffer curCommandBuffer, uint32_t imageIndex, ImDrawData* drawData){
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, ImDrawData* drawData){
+        renderer.runRenderPass([this, commandBuffer, drawData](){
+            if (lineMode) pipeline->bind(commandBuffer);
+            else pipeline->bind(commandBuffer);
 
-        if (vkBeginCommandBuffer(curCommandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command m_buffer!");
-        }
+            model->bind(commandBuffer);
 
-        swapChain->beginRenderPass(curCommandBuffer, imageIndex);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                    0, 1, &descriptorSets[renderer.currentFrame()], 0, nullptr);
+            model->draw(commandBuffer);
 
-        if (lineMode) pipeline->bind(curCommandBuffer);
-        else pipeline->bind(curCommandBuffer);
-
-        model->bind(curCommandBuffer);
-
-        vkCmdBindDescriptorSets(curCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &descriptorSets[currentFrame], 0, nullptr);
-        model->draw(curCommandBuffer);
-
-        ImGui_ImplVulkan_RenderDrawData(drawData, curCommandBuffer);
-
-        swapChain->endRenderPass(curCommandBuffer);
-
-        if (vkEndCommandBuffer(curCommandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command m_buffer!");
-        }
+            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
+        });
 
     }
 
@@ -363,7 +329,7 @@ private:
                 * glm::rotate(glm::mat4(1.0f), angles[1],glm::vec3(0.0f, 1.0f, 0.0f))
                 * glm::rotate(glm::mat4(1.0f), angles[2],glm::vec3(1.0f, 0.0f, 0.0f));
         ubo.view = glm::lookAt(pos, pos + dir,cameraPlane);
-        ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChain->width() / (float) swapChain->height(),
+        ubo.proj = glm::perspective(glm::radians(45.0f), renderer.getSwapChainAspectRatio(),
                                     0.1f, 100.0f);
 
         ubo.proj[1][1] *= -1;
@@ -384,6 +350,7 @@ private:
     }
 
     void initVulkan() {
+
         createDescriptorSetLayout();
         createUniformBuffers();
 
@@ -391,9 +358,10 @@ private:
         // descriptor
         createDescriptorPool();
         createDescriptorSets();
-        createCommandBuffer();
         // control
         initImGuiVulkan();
+
+
     }
 
     void createGraphicsPipeline(){
@@ -408,7 +376,7 @@ private:
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
-        vtt::Pipeline::PipelineConfigInfo pipelineConfigInfo = vtt::Pipeline::defaultConfigInfo(pipelineLayout, swapChain->renderPass());
+        vtt::Pipeline::PipelineConfigInfo pipelineConfigInfo = vtt::Pipeline::defaultConfigInfo(pipelineLayout, renderer.renderPass());
 
         pipeline = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
                                                    "../shaders/frag.spv", pipelineConfigInfo);
@@ -429,45 +397,30 @@ private:
         initInfo.Instance = device.instance();
         initInfo.PhysicalDevice = device.physicalDevice();
         initInfo.Device = device.device();
-        initInfo.QueueFamily = swapChain->queueFamily();
+        initInfo.QueueFamily = renderer.queueFamily();
         initInfo.Queue = device.graphicsQueue();
         initInfo.PipelineCache = nullptr;
         initInfo.DescriptorPool = descriptorPool;
         initInfo.Subpass = 0;
-        initInfo.MinImageCount = swapChain->imageCount();
-        initInfo.ImageCount = static_cast<uint32_t>(swapChain->numImages());
+        initInfo.MinImageCount = renderer.imageCount();
+        initInfo.ImageCount = static_cast<uint32_t>(renderer.numImages());
         initInfo.MSAASamples = device.msaaSamples();
         initInfo.Allocator = nullptr;
         initInfo.CheckVkResultFn = check_vk_result;
-        ImGui_ImplVulkan_Init(&initInfo, swapChain->renderPass());
+
+        ImGui_ImplVulkan_Init(&initInfo, renderer.renderPass());
 
         {
             VkResult err;
             // Use any command queue
             VkCommandPool command_pool = device.commandPool();
-            VkCommandBuffer command_buffer = commandBuffers[0];
 
             err = vkResetCommandPool(device.device(), command_pool, 0);
             check_vk_result(err);
-            VkCommandBufferBeginInfo begin_info = {};
-            begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            err = vkBeginCommandBuffer(command_buffer, &begin_info);
-            check_vk_result(err);
+            device.executeSingleCommand([](VkCommandBuffer commandBuffer) {
+                ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+            });
 
-            ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-
-            VkSubmitInfo end_info = {};
-            end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            end_info.commandBufferCount = 1;
-            end_info.pCommandBuffers = &command_buffer;
-            err = vkEndCommandBuffer(command_buffer);
-            check_vk_result(err);
-            err = vkQueueSubmit(device.graphicsQueue(), 1, &end_info, VK_NULL_HANDLE);
-            check_vk_result(err);
-
-            err = vkDeviceWaitIdle(device.device());
-            check_vk_result(err);
             ImGui_ImplVulkan_DestroyFontUploadObjects();
         }
     }
@@ -600,35 +553,6 @@ private:
             throw std::runtime_error("failed to create descriptor set layout!");
         }
 
-    }
-
-    void createCommandBuffer(){
-        commandBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = device.commandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-
-    }
-
-    void recreateSwapChain(){
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(window.window(), &width, &height);
-        if (width == 0 && height == 0){
-            glfwGetFramebufferSize(window.window(), &width, &height);
-            glfwWaitEvents();
-        }
-
-        vkDeviceWaitIdle(device.device());
-
-        swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
-        ImGui_ImplVulkan_SetMinImageCount(swapChain->imageCount());
     }
 
 

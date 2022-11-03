@@ -3,8 +3,20 @@
 //
 
 #include "SwapChain.h"
+
+#include <utility>
 namespace vtt {
     SwapChain::SwapChain(const Device& device, VkExtent2D windowExtent): m_deviceRef(device), m_windowExtent(windowExtent) {
+        init();
+    }
+
+    SwapChain::SwapChain(const Device& device, VkExtent2D windowExtent, std::shared_ptr<SwapChain>  oldSwapChain):
+    m_deviceRef(device), m_windowExtent(windowExtent), m_oldSwapChain(std::move(oldSwapChain)) {
+        init();
+        oldSwapChain = nullptr;
+    }
+
+    void SwapChain::init() {
         createSwapChain();
         createImageViews();
         createRenderPass();
@@ -12,7 +24,6 @@ namespace vtt {
         createDepthResources();
         createFrameBuffers();
         createSyncObjects();
-
     }
 
     SwapChain::~SwapChain() {
@@ -153,7 +164,7 @@ namespace vtt {
 
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
+        createInfo.oldSwapchain = (m_oldSwapChain == nullptr) ? VK_NULL_HANDLE: m_oldSwapChain->swapChain();
 
         if (vkCreateSwapchainKHR(m_deviceRef.device(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
@@ -250,8 +261,8 @@ namespace vtt {
     }
 
     void SwapChain::createDepthResources() {
-        VkFormat depthFormat = findDepthFormat();
-        m_depthImage = std::make_unique<Image>(m_deviceRef, width(), height(), 1, m_deviceRef.msaaSamples(), depthFormat,
+        m_depthFormat = findDepthFormat();
+        m_depthImage = std::make_unique<Image>(m_deviceRef, width(), height(), 1, m_deviceRef.msaaSamples(), m_depthFormat,
                                                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }

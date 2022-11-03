@@ -435,7 +435,7 @@ void ImGui::ShowDemoWindow(bool* p_open)
             ImGui::CheckboxFlags("io.ConfigFlags: NoMouse",              &io.ConfigFlags, ImGuiConfigFlags_NoMouse);
             if (io.ConfigFlags & ImGuiConfigFlags_NoMouse)
             {
-                // The "NoMouse" option can get us stuck with a disabled mouse! Let's provide an alternative way to fix it:
+                // The "NoMouse" option can swapChain us stuck with a disabled mouse! Let's provide an alternative way to fix it:
                 if (fmodf((float)ImGui::GetTime(), 0.40f) < 0.20f)
                 {
                     ImGui::SameLine();
@@ -5357,7 +5357,7 @@ static void ShowDemoWindowTables()
                 ImGui::TableHeadersRow();
 
             // Show data
-            // FIXME-TABLE FIXME-NAV: How we can get decent up/down even though we have the buttons here?
+            // FIXME-TABLE FIXME-NAV: How we can swapChain decent up/down even though we have the buttons here?
             ImGui::PushButtonRepeat(true);
 #if 1
             // Demonstrate using clipper for large vertical lists
@@ -6308,7 +6308,7 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
             ImGui::ShowFontAtlas(atlas);
 
             // Post-baking font scaling. Note that this is NOT the nice way of scaling fonts, read below.
-            // (we enforce hard clamping manually as by default DragFloat/SliderFloat allows CTRL+Click text to get out of bounds).
+            // (we enforce hard clamping manually as by default DragFloat/SliderFloat allows CTRL+Click text to swapChain out of bounds).
             const float MIN_SCALE = 0.3f;
             const float MAX_SCALE = 2.0f;
             HelpMarker(

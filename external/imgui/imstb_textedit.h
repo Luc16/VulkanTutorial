@@ -1238,7 +1238,7 @@ static void stb_text_undo(STB_TEXTEDIT_STRING *str, STB_TexteditState *state)
 
    if (u.delete_length) {
       // if the undo record says to delete characters, then the redo record will
-      // need to re-insert the characters that get deleted, so we need to store
+      // need to re-insert the characters that swapChain deleted, so we need to store
       // them.
 
       // there are three cases:

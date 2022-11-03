@@ -120,17 +120,27 @@ namespace vtt {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
+        std::cout << "Physical device list:\n";
+        bool deviceChosen = false;
         for (const auto& pDevice : devices){
-            if (isDeviceSuitable(pDevice)) {
+//            VkPhysicalDeviceProperties properties;
+//            vkGetPhysicalDeviceProperties(pDevice, &properties);
+//            std::cout << properties.deviceName << std::endl;
+
+            if (isDeviceSuitable(pDevice) && !deviceChosen) {
+                deviceChosen = true;
                 m_physicalDevice = pDevice;
                 m_msaaSamples = getMaxUsableSampleCount();
-                break;
             }
         }
 
         if (m_physicalDevice == VK_NULL_HANDLE) {
             throw std::runtime_error("failed to find a suitable GPU!");
         }
+
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
+        std::cout << "Using physical device: " << properties.deviceName << std::endl;
     }
 
     void Device::createSurface(){

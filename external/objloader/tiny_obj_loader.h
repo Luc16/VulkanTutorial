@@ -403,7 +403,7 @@ typedef double real_t;
         //
 
         // NOTE(syoyo): array index is based on the appearance order.
-        // To get a corresponding skin weight for a specific vertex id `vid`,
+        // To swapChain a corresponding skin weight for a specific vertex id `vid`,
         // Need to reconstruct a look up table: `skin_weight_t::vertex_id` == `vid`
         // (e.g. using std::map, std::unordered_map)
         std::vector<skin_weight_t> skin_weights;
@@ -3386,7 +3386,7 @@ bool ObjReader::ParseFromFile(const std::string &filename,
 
   if (config.mtl_search_path.empty()) {
     //
-    // split at last '/'(for unixish system) or '\\'(for windows) to get
+    // split at last '/'(for unixish system) or '\\'(for windows) to swapChain
     // the base directory of .obj file
     //
     size_t pos = filename.find_last_of("/\\");
