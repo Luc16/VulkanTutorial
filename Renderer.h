@@ -13,6 +13,7 @@ namespace vtt {
     class Renderer {
     public:
         Renderer(Window& window, const Device& device);
+
         ~Renderer();
         Renderer(const Renderer &) = delete;
         Renderer &operator=(const Renderer &) = delete;
@@ -29,12 +30,15 @@ namespace vtt {
             return m_commandBuffers[m_currentFrame];
         }
 
-        void runRenderPass(const std::function<void()>& function) const;
+        void runRenderPass(const std::function<void(VkCommandBuffer&)>& function) const;
         void runFrame(const std::function<void(VkCommandBuffer&)>& function);
+        void activateImGui(VkDescriptorPool descriptorPool);
     private:
         void recreateSwapChain();
         void createCommandBuffers();
         void freeCommandBuffers();
+        void createImGuiVulkan(VkDescriptorPool descriptorPool);
+        static void checkVkResultImGui(VkResult err);
 
         std::unique_ptr<vtt::SwapChain> m_swapChain;
         std::vector<VkCommandBuffer> m_commandBuffers;
@@ -44,6 +48,8 @@ namespace vtt {
 
         const Device& m_deviceRef;
         Window& m_windowRef;
+
+        bool m_imGuiActivated = false;
     };
 }
 

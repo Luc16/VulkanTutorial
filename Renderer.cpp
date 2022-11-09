@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include "Renderer.h"
 #include "external/imgui/imgui_impl_vulkan.h"
+#include "external/imgui/imgui_impl_glfw.h"
+#include "external/imgui/imgui_internal.h"
 
 namespace vtt {
 
@@ -15,6 +17,19 @@ namespace vtt {
 
     Renderer::~Renderer() {
         freeCommandBuffers();
+
+        if (m_imGuiActivated) {
+            ImGui_ImplGlfw_Shutdown();
+            ImGui_ImplVulkan_Shutdown();
+            ImGui::DestroyContext();
+        }
+    }
+
+    void Renderer::activateImGui(VkDescriptorPool descriptorPool){
+        if (m_imGuiActivated) throw std::runtime_error("Can't start ImGui more than once");
+
+        createImGuiVulkan(descriptorPool);
+        m_imGuiActivated = true;
     }
 
     void Renderer::runFrame(const std::function<void(VkCommandBuffer&)>& function) {
@@ -26,6 +41,12 @@ namespace vtt {
             return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR){
             throw std::runtime_error("failed to acquire swap chain image!");
+        }
+
+        if (m_imGuiActivated) {
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
         }
 
         m_isFrameStarted = true;
@@ -54,22 +75,29 @@ namespace vtt {
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
+        if (m_imGuiActivated) ImGui::EndFrame();
 
         m_currentFrame = (m_currentFrame + 1) % vtt::SwapChain::MAX_FRAMES_IN_FLIGHT;
         m_isFrameStarted = false;
     }
 
-    void Renderer::runRenderPass(const std::function<void()> &function) const {
+    void Renderer::runRenderPass(const std::function<void(VkCommandBuffer&)> &function) const {
         if (!m_isFrameStarted) throw std::runtime_error("Can't run renderPass with no frames running");
 
-        m_swapChain->beginRenderPass(getCurrentCommandBuffer(), m_imageIndex);
+        auto commandBuffer = getCurrentCommandBuffer();
+        m_swapChain->beginRenderPass(commandBuffer, m_imageIndex);
 
-        function();
+        function(commandBuffer);
 
-        m_swapChain->endRenderPass(getCurrentCommandBuffer());
+
+        if (m_imGuiActivated) {
+            ImGui::Render();
+            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+        }
+
+        m_swapChain->endRenderPass(commandBuffer);
 
     }
-
 
     void Renderer::recreateSwapChain() {
         int width = 0, height = 0;
@@ -92,8 +120,7 @@ namespace vtt {
             throw std::runtime_error("Swap chain image(or depth) format has changed!");
         }
 
-        // TODO tirarrrrrrrrrr quando fizer classe do imgui
-        ImGui_ImplVulkan_SetMinImageCount(m_swapChain->imageCount());
+        if (m_imGuiActivated) ImGui_ImplVulkan_SetMinImageCount(m_swapChain->imageCount());
 
     }
 
@@ -118,4 +145,52 @@ namespace vtt {
         m_commandBuffers.clear();
 
     }
+
+    void Renderer::checkVkResultImGui(VkResult err) {
+        if (err == 0)
+            return;
+        fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+        if (err < 0)
+            abort();
+    }
+
+    void Renderer::createImGuiVulkan(VkDescriptorPool descriptorPool) {
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui_ImplGlfw_InitForVulkan(m_windowRef.window(), true);
+        ImGui::StyleColorsDark();
+
+
+        ImGui_ImplVulkan_InitInfo initInfo = {};
+        initInfo.Instance = m_deviceRef.instance();
+        initInfo.PhysicalDevice = m_deviceRef.physicalDevice();
+        initInfo.Device = m_deviceRef.device();
+        initInfo.QueueFamily = queueFamily();
+        initInfo.Queue = m_deviceRef.graphicsQueue();
+        initInfo.PipelineCache = nullptr;
+        initInfo.DescriptorPool = descriptorPool;
+        initInfo.Subpass = 0;
+        initInfo.MinImageCount = imageCount();
+        initInfo.ImageCount = static_cast<uint32_t>(numImages());
+        initInfo.MSAASamples = m_deviceRef.msaaSamples();
+        initInfo.Allocator = nullptr;
+        initInfo.CheckVkResultFn = checkVkResultImGui;
+
+        ImGui_ImplVulkan_Init(&initInfo, renderPass());
+
+        {
+            VkResult err;
+            // Use any command queue
+            VkCommandPool command_pool = m_deviceRef.commandPool();
+
+            err = vkResetCommandPool(m_deviceRef.device(), command_pool, 0);
+            checkVkResultImGui(err);
+            m_deviceRef.executeSingleCommand([](VkCommandBuffer commandBuffer) {
+                ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+            });
+
+            ImGui_ImplVulkan_DestroyFontUploadObjects();
+        }
+    }
+
 }

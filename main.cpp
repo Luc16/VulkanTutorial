@@ -6,8 +6,6 @@
 #include <sstream>
 #include <fstream>
 #include "external/imgui/imgui.h"
-#include "external/imgui/imgui_impl_glfw.h"
-#include "external/imgui/imgui_impl_vulkan.h"
 #include "external/objloader/tiny_obj_loader.h"
 #include "SwapChain.h"
 #include "Buffer.h"
@@ -33,7 +31,6 @@ class HelloTriangleApplication {
 public:
 
     void run() {
-        initWindow();
         initVulkan();
         mainLoop();
         cleanup();
@@ -49,6 +46,8 @@ private:
     vtt::Window window{WIDTH, HEIGHT, "Vulkan"};
     vtt::Device device{window};
     // update
+    VkDescriptorPool descriptorPool{};
+
     vtt::Renderer renderer{window, device};
     std::unique_ptr<vtt::DescriptorSetLayout> descriptorLayout;
     // config
@@ -61,7 +60,6 @@ private:
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
     vtt::Texture texture{device, texturePath};
 
-    VkDescriptorPool descriptorPool{};
     // update
     std::vector<VkDescriptorSet> descriptorSets;
 
@@ -83,14 +81,6 @@ private:
     // movement
     float cameraSpeed = 1e-2;
     float angleSpeed = 1e-3;
-
-    void initWindow() {
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        ImGui_ImplGlfw_InitForVulkan(window.window(), true);
-        ImGui::StyleColorsDark();
-
-    }
 
     void mainLoop() {
         startTime = glfwGetTime();
@@ -177,16 +167,9 @@ private:
     void drawFrame(){
         updateUniformBuffer(renderer.currentFrame());
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        showImGui();
-
         renderer.runFrame([this](VkCommandBuffer commandBuffer){
-            ImGui::Render();
-            auto imGuiDrawData = ImGui::GetDrawData();
-            recordCommandBuffer(commandBuffer, imGuiDrawData);
-
+            showImGui();
+            recordCommandBuffer();
         });
 
     }
@@ -239,8 +222,8 @@ private:
 
     }
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, ImDrawData* drawData){
-        renderer.runRenderPass([this, commandBuffer, drawData](){
+    void recordCommandBuffer(){
+        renderer.runRenderPass([this](VkCommandBuffer& commandBuffer){
             if (lineMode) pipelineLine->bind(commandBuffer);
             else pipelineFill->bind(commandBuffer);
 
@@ -250,7 +233,6 @@ private:
                                     0, 1, &descriptorSets[renderer.currentFrame()], 0, nullptr);
             model->draw(commandBuffer);
 
-            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
         });
 
     }
@@ -288,23 +270,18 @@ private:
 
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
 
-        ImGui_ImplGlfw_Shutdown();
-        ImGui_ImplVulkan_Shutdown();
-        ImGui::DestroyContext();
+
     }
 
     void initVulkan() {
-
         createDescriptorSetLayout();
         createUniformBuffers();
-
         createGraphicsPipeline();
         // descriptor
         createDescriptorPool();
+        renderer.activateImGui(descriptorPool);
         createDescriptorSets();
         // control
-        initImGuiVulkan();
-
 
     }
 
@@ -330,48 +307,6 @@ private:
         pipelineLine = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
                                                        "../shaders/frag.spv", pipelineConfigInfo);
 
-    }
-
-    static void check_vk_result(VkResult err)
-    {
-        if (err == 0)
-            return;
-        fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-        if (err < 0)
-            abort();
-    }
-
-    void initImGuiVulkan() {
-        ImGui_ImplVulkan_InitInfo initInfo = {};
-        initInfo.Instance = device.instance();
-        initInfo.PhysicalDevice = device.physicalDevice();
-        initInfo.Device = device.device();
-        initInfo.QueueFamily = renderer.queueFamily();
-        initInfo.Queue = device.graphicsQueue();
-        initInfo.PipelineCache = nullptr;
-        initInfo.DescriptorPool = descriptorPool;
-        initInfo.Subpass = 0;
-        initInfo.MinImageCount = renderer.imageCount();
-        initInfo.ImageCount = static_cast<uint32_t>(renderer.numImages());
-        initInfo.MSAASamples = device.msaaSamples();
-        initInfo.Allocator = nullptr;
-        initInfo.CheckVkResultFn = check_vk_result;
-
-        ImGui_ImplVulkan_Init(&initInfo, renderer.renderPass());
-
-        {
-            VkResult err;
-            // Use any command queue
-            VkCommandPool command_pool = device.commandPool();
-
-            err = vkResetCommandPool(device.device(), command_pool, 0);
-            check_vk_result(err);
-            device.executeSingleCommand([](VkCommandBuffer commandBuffer) {
-                ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-            });
-
-            ImGui_ImplVulkan_DestroyFontUploadObjects();
-        }
     }
 
     void createDescriptorSets() {
