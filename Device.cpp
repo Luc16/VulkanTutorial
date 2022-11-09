@@ -3,7 +3,6 @@
 //
 
 #include "Device.h"
-#include "SwapChain.h"
 
 namespace vtt {
 
@@ -120,7 +119,7 @@ namespace vtt {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
-        std::cout << "Physical device list:\n";
+//        std::cout << "Physical device list:\n";
         bool deviceChosen = false;
         for (const auto& pDevice : devices){
 //            VkPhysicalDeviceProperties properties;

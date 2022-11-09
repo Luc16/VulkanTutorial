@@ -11,70 +11,21 @@
 #include "external/objloader/tiny_obj_loader.h"
 #include "SwapChain.h"
 #include "Buffer.h"
-#include "Image.h"
 #include "Model.h"
 #include "utils.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Renderer.h"
+#include "DescriptorSetLayout.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
-
-
-#ifdef NDEBUG
-    const bool enableValidationLayers = false;
-#else
-    const bool enableValidationLayers = true;
-#endif
-
 
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
-
-//const std::vector<Vertex> vertices = {
-//        {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-//        {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-//        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-//
-//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-//        {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-//        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-//        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-//
-//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-//        {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-//        {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//        {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-//
-//        {{-0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-//        {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-//        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-//
-//        {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-//        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//        {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-//        {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-//
-//        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-//        {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-//        {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-//};
-//
-//const std::vector<uint16_t> indices = {
-//        0, 1, 2, 2, 3, 0,
-//        4, 5, 6, 6, 7, 4,
-//        8, 9, 10, 10, 11, 8,
-//        12, 13, 14, 14, 15, 12,
-//        16, 17, 18, 18, 19, 16,
-//        20, 21, 22, 22, 23, 20,
-//};
 
 bool forward = false, backward = false, up = false, down = false, left = false, right = false;
 
@@ -97,21 +48,17 @@ private:
     // config
     vtt::Window window{WIDTH, HEIGHT, "Vulkan"};
     vtt::Device device{window};
-
     // update
-//    std::unique_ptr<vtt::SwapChain> swapChain = std::make_unique<vtt::SwapChain>(device, window.extent());
     vtt::Renderer renderer{window, device};
-
-    VkDescriptorSetLayout descriptorSetLayout{}; // config
-
+    std::unique_ptr<vtt::DescriptorSetLayout> descriptorLayout;
     // config
     VkPipelineLayout pipelineLayout{};
-    std::unique_ptr<vtt::Pipeline> pipeline;
+
+    std::unique_ptr<vtt::Pipeline> pipelineFill;
+    std::unique_ptr<vtt::Pipeline> pipelineLine;
 
     std::unique_ptr<vtt::Model> model = vtt::Model::createModelFromFile(device, modelPath);
-
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
-
     vtt::Texture texture{device, texturePath};
 
     VkDescriptorPool descriptorPool{};
@@ -230,7 +177,6 @@ private:
     void drawFrame(){
         updateUniformBuffer(renderer.currentFrame());
 
-
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -247,7 +193,6 @@ private:
 
     void showImGui(){
         static bool show_demo_window = false, show_another_window = false;
-        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
         if (show_demo_window) {
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -296,8 +241,8 @@ private:
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, ImDrawData* drawData){
         renderer.runRenderPass([this, commandBuffer, drawData](){
-            if (lineMode) pipeline->bind(commandBuffer);
-            else pipeline->bind(commandBuffer);
+            if (lineMode) pipelineLine->bind(commandBuffer);
+            else pipelineFill->bind(commandBuffer);
 
             model->bind(commandBuffer);
 
@@ -340,7 +285,6 @@ private:
 
     void cleanup() {
         vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(device.device(), descriptorSetLayout, nullptr);
 
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
 
@@ -365,10 +309,11 @@ private:
     }
 
     void createGraphicsPipeline(){
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{descriptorLayout->descriptorSetLayout()};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -376,10 +321,14 @@ private:
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
-        vtt::Pipeline::PipelineConfigInfo pipelineConfigInfo = vtt::Pipeline::defaultConfigInfo(pipelineLayout, renderer.renderPass());
+        auto pipelineConfigInfo = vtt::Pipeline::defaultConfigInfo(pipelineLayout, renderer.renderPass());
 
-        pipeline = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
+        pipelineFill = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
                                                    "../shaders/frag.spv", pipelineConfigInfo);
+
+        pipelineConfigInfo.enablePolygonLineMode();
+        pipelineLine = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
+                                                       "../shaders/frag.spv", pipelineConfigInfo);
 
     }
 
@@ -425,8 +374,8 @@ private:
         }
     }
 
-    void createDescriptorSets(){
-        std::vector<VkDescriptorSetLayout> layouts(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+    void createDescriptorSets() {
+        std::vector<VkDescriptorSetLayout> layouts(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT, descriptorLayout->descriptorSetLayout());
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = descriptorPool;
@@ -529,35 +478,11 @@ private:
     }
 
     void createDescriptorSetLayout(){
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        if (vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS){
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-
+        descriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
+                .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr})
+                .build();
     }
-
-
-
-
 };
 
 int main() {
