@@ -6,11 +6,16 @@
 
 namespace vtt {
 
-    DescriptorSetLayout::DescriptorSetLayout(const Device &device, const std::vector<VkDescriptorSetLayoutBinding>& bindings): m_deviceRef(device) {
+    DescriptorSetLayout::DescriptorSetLayout(const Device &device, const std::unordered_map<uint32_t,
+                                             VkDescriptorSetLayoutBinding>& bindings): m_deviceRef(device), m_bindings(bindings) {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+        for (auto kv : bindings) {
+            setLayoutBindings.push_back(kv.second);
+        }
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
+        layoutInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+        layoutInfo.pBindings = setLayoutBindings.data();
 
         if (vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS){
             throw std::runtime_error("failed to create descriptor set layout!");
@@ -22,12 +27,9 @@ namespace vtt {
     }
 
     DescriptorSetLayout::Builder &DescriptorSetLayout::Builder::addBinding(VkDescriptorSetLayoutBinding binding) {
-        for (const auto &item: bindings) {
-            if (item.binding == binding.binding){
-                throw std::runtime_error("Trying to add two VkDescriptorSetLayoutBinding with the same binding");
-            }
-        }
-        bindings.push_back(binding);
+        if (bindings.count(binding.binding) == 1) throw std::runtime_error("Trying to add two VkDescriptorSetLayoutBinding with the same binding");
+
+        bindings[binding.binding] = binding;
         return *this;
     }
 

@@ -37,7 +37,7 @@ namespace vtt {
         void recreateSwapChain();
         void createCommandBuffers();
         void freeCommandBuffers();
-        void createImGuiVulkan(VkDescriptorPool descriptorPool);
+        void initImGuiVulkan(VkDescriptorPool descriptorPool);
         static void checkVkResultImGui(VkResult err);
 
         std::unique_ptr<vtt::SwapChain> m_swapChain;

@@ -1782,7 +1782,7 @@ void ImGui::TableEndRow(ImGuiTable* table)
         if ((bg_col0 | bg_col1 | border_col) != 0 || draw_strong_bottom_border || draw_cell_bg_color)
         {
             // In theory we could call SetWindowClipRectBeforeSetChannel() but since we know TableEndRow() is
-            // always followed by a change of clipping rectangle we perform the smallest overwrite possible here.
+            // always followed by a change of clipping rectangle we perform the smallest update possible here.
             if ((table->Flags & ImGuiTableFlags_NoClip) == 0)
                 window->DrawList->_CmdHeader.ClipRect = table->Bg0ClipRectForDrawCmd.ToVec4();
             table->DrawSplitter->SetCurrentChannel(window->DrawList, TABLE_DRAW_CHANNEL_BG0);
@@ -2305,7 +2305,7 @@ void ImGui::TableSetupDrawChannels(ImGuiTable* table)
 }
 
 // This function reorder draw channels based on matching clip rectangle, to facilitate merging them. Called by EndTable().
-// For simplicity we call it TableMergeDrawChannels() but in fact it only reorder channels + overwrite ClipRect,
+// For simplicity we call it TableMergeDrawChannels() but in fact it only reorder channels + update ClipRect,
 // actual merging is done by table->DrawSplitter.Merge() which is called right after TableMergeDrawChannels().
 //
 // Columns where the contents didn't stray off their local clip rectangle can be merged. To achieve
@@ -2467,7 +2467,7 @@ void ImGui::TableMergeDrawChannels(ImGuiTable* table)
                     remaining_mask.Storage[n] &= ~merge_group->ChannelsMask.Storage[n];
                 for (int n = 0; n < splitter->_Count && merge_channels_count != 0; n++)
                 {
-                    // Copy + overwrite new clip rect
+                    // Copy + update new clip rect
                     if (!merge_group->ChannelsMask.TestBit(n))
                         continue;
                     merge_group->ChannelsMask.ClearBit(n);
@@ -3656,7 +3656,7 @@ void ImGui::DebugNodeTableSettings(ImGuiTableSettings*) {}
 
 // [Internal] Small optimization to avoid calls to PopClipRect/SetCurrentChannel/PushClipRect in sequences,
 // they would meddle many times with the underlying ImDrawCmd.
-// Instead, we do a preemptive overwrite of clipping rectangle _without_ altering the command-m_buffer and let
+// Instead, we do a preemptive update of clipping rectangle _without_ altering the command-m_buffer and let
 // the subsequent single call to SetCurrentChannel() does it things once.
 void ImGui::SetWindowClipRectBeforeSetChannel(ImGuiWindow* window, const ImRect& clip_rect)
 {
@@ -3945,7 +3945,7 @@ void ImGui::NextColumn()
     PopItemWidth();
 
     // Optimization: avoid PopClipRect() + SetCurrentChannel() + PushClipRect()
-    // (which would needlessly attempt to update commands in the wrong channel, then pop or overwrite them),
+    // (which would needlessly attempt to update commands in the wrong channel, then pop or update them),
     ImGuiOldColumnData* column = &columns->Columns[columns->Current];
     SetWindowClipRectBeforeSetChannel(window, column->ClipRect);
     columns->Splitter.SetCurrentChannel(window->DrawList, columns->Current + 1);

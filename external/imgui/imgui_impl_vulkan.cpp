@@ -32,7 +32,7 @@
 // (minor and older changes stripped away, please see git history for details)
 //  2021-10-15: Vulkan: Call vkCmdSetScissor() at the end of render a full-viewport to reduce likehood of issues with people using VK_DYNAMIC_STATE_SCISSOR in their app without calling vkCmdSetScissor() explicitly every frame.
 //  2021-06-29: Reorganized backend to pull data from a single structure to facilitate usage with multiple-contexts (all g_XXXX access changed to bd->XXXX).
-//  2021-03-22: Vulkan: Fix m_mapped m_memory validation error when m_buffer sizes are not multiple of VkPhysicalDeviceLimits::nonCoherentAtomSize.
+//  2021-03-22: Vulkan: Fix m_mapped m_memory validation error when m_buffer poolSizes are not multiple of VkPhysicalDeviceLimits::nonCoherentAtomSize.
 //  2021-02-18: Vulkan: Change blending equation to preserve alpha in output m_buffer.
 //  2021-01-27: Vulkan: Added support for custom function load and IMGUI_IMPL_VULKAN_NO_PROTOTYPES by using ImGui_ImplVulkan_LoadFunctions().
 //  2020-11-11: Vulkan: Added support for specifying which subpass to reference during VkPipeline creation.

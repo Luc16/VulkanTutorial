@@ -178,7 +178,7 @@
 //         and space the characters. See docs for stbtt_GetFontVMetrics.
 //
 //      Font Size in Pixels or Points
-//         The preferred interface for specifying font sizes in stb_truetype
+//         The preferred interface for specifying font poolSizes in stb_truetype
 //         is to specify how tall the font's vertical extent should be in pixels.
 //         If that sounds good enough, skip the next paragraph.
 //
@@ -639,7 +639,7 @@ STBTT_DEF int  stbtt_PackFontRanges(stbtt_pack_context *spc, const unsigned char
 
 STBTT_DEF void stbtt_PackSetOversampling(stbtt_pack_context *spc, unsigned int h_oversample, unsigned int v_oversample);
 // Oversampling a font increases the quality by allowing higher-quality subpixel
-// positioning, and is especially valuable at smaller text sizes.
+// positioning, and is especially valuable at smaller text poolSizes.
 //
 // This function sets the amount of oversampling for all following calls to
 // stbtt_PackFontRange(s) or stbtt_PackFontRangesGatherRects for a given
@@ -988,7 +988,7 @@ STBTT_DEF unsigned char * stbtt_GetCodepointSDF(const stbtt_fontinfo *info, floa
 //      choice of variables maps a range from 5 pixels outside the shape to
 //      2 pixels inside the shape to 0..255; this is intended primarily for apply
 //      outside effects only (the interior range is needed to allow proper
-//      antialiasing of the font at *smaller* sizes)
+//      antialiasing of the font at *smaller* poolSizes)
 //
 // The function computes the SDF analytically at each SDF pixel, not by e.g.
 // building a higher-res bitmap and approximating it. In theory the quality
@@ -997,7 +997,7 @@ STBTT_DEF unsigned char * stbtt_GetCodepointSDF(const stbtt_fontinfo *info, floa
 // and computing from that can allow drop-out prevention).
 //
 // The algorithm has not been optimized at all, so expect it to be slow
-// if computing lots of characters or very large sizes.
+// if computing lots of characters or very large poolSizes.
 
 
 
@@ -1711,7 +1711,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
       flagcount=0;
 
       // in first pass, we load uninterpreted data into the allocated array
-      // above, shifted to the end of the array so we won't overwrite it when
+      // above, shifted to the end of the array so we won't update it when
       // we create our final data starting from the front
 
       off = m - n; // starting offset for uninterpreted data, regardless of how m ends up being calculated

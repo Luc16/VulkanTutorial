@@ -28,7 +28,7 @@ namespace vtt {
     void Renderer::activateImGui(VkDescriptorPool descriptorPool){
         if (m_imGuiActivated) throw std::runtime_error("Can't start ImGui more than once");
 
-        createImGuiVulkan(descriptorPool);
+        initImGuiVulkan(descriptorPool);
         m_imGuiActivated = true;
     }
 
@@ -154,7 +154,7 @@ namespace vtt {
             abort();
     }
 
-    void Renderer::createImGuiVulkan(VkDescriptorPool descriptorPool) {
+    void Renderer::initImGuiVulkan(VkDescriptorPool descriptorPool) {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui_ImplGlfw_InitForVulkan(m_windowRef.window(), true);

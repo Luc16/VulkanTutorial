@@ -5,7 +5,7 @@
 #ifndef VULKANTUTORIAL_DESCRIPTORSETLAYOUT_H
 #define VULKANTUTORIAL_DESCRIPTORSETLAYOUT_H
 
-#include "Device.h"
+#include "../Device.h"
 
 namespace vtt {
     class DescriptorSetLayout {
@@ -19,10 +19,10 @@ namespace vtt {
 
         private:
             const Device& m_deviceRef;
-            std::vector<VkDescriptorSetLayoutBinding> bindings{};
+            std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings{};
         };
 
-        DescriptorSetLayout(const Device &device, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+        DescriptorSetLayout(const Device &device, const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& bindings);
         ~DescriptorSetLayout();
         DescriptorSetLayout(const DescriptorSetLayout &) = delete;
         DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
@@ -33,6 +33,9 @@ namespace vtt {
     private:
         const Device& m_deviceRef;
         VkDescriptorSetLayout m_layout{};
+        std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> m_bindings;
+
+        friend class DescriptorWriter;
     };
 }
 

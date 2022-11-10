@@ -22,6 +22,7 @@ namespace vtt {
 
         [[nodiscard]] VkBuffer get() const { return m_buffer; }
 
+        // TODO check alternatives for unmap
         void map();
         void unmap();
         void write(void* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);

@@ -14,7 +14,9 @@
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Renderer.h"
-#include "DescriptorSetLayout.h"
+#include "descriptors/DescriptorSetLayout.h"
+#include "descriptors/DescriptorPool.h"
+#include "descriptors/DescriptorWriter.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
@@ -46,7 +48,7 @@ private:
     vtt::Window window{WIDTH, HEIGHT, "Vulkan"};
     vtt::Device device{window};
     // update
-    VkDescriptorPool descriptorPool{};
+    std::unique_ptr<vtt::DescriptorPool> descriptorPool;
 
     vtt::Renderer renderer{window, device};
     std::unique_ptr<vtt::DescriptorSetLayout> descriptorLayout;
@@ -266,20 +268,15 @@ private:
     }
 
     void cleanup() {
-        vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
-
         vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
-
-
     }
 
     void initVulkan() {
-        createDescriptorSetLayout();
         createUniformBuffers();
+        createDescriptors();
         createGraphicsPipeline();
-        // descriptor
-        createDescriptorPool();
-        renderer.activateImGui(descriptorPool);
+
+        renderer.activateImGui(descriptorPool->descriptorPool());
         createDescriptorSets();
         // control
 
@@ -310,17 +307,13 @@ private:
     }
 
     void createDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT, descriptorLayout->descriptorSetLayout());
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
         descriptorSets.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device.device(), &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
+
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = texture.view();
+        imageInfo.sampler = texture.sampler();
 
         for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
             VkDescriptorBufferInfo bufferInfo{};
@@ -328,76 +321,11 @@ private:
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = texture.view();
-            imageInfo.sampler = texture.sampler();
-
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
-
-            vkUpdateDescriptorSets(device.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            vtt::DescriptorWriter(*descriptorLayout, *descriptorPool)
+                .writeBuffer(0, &bufferInfo)
+                .writeImage(1, &imageInfo)
+                .build(descriptorSets[i]);
         }
-
-    }
-
-    void createDescriptorPool() {
-
-        std::array<VkDescriptorPoolSize, 11> poolSizes = {{
-            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-        }};
-
-        VkDescriptorPoolCreateInfo poolInfo = {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        poolInfo.maxSets = 1000 * poolSizes.size();
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        if (vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS){
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
-
-
-//        std::array<VkDescriptorPoolSize, 2> poolSizes{};
-//        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-//        poolSizes[0].descriptorCount = static_cast<uint32_t>(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-//        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-//        poolSizes[1].descriptorCount = static_cast<uint32_t>(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-//
-//        VkDescriptorPoolCreateInfo poolInfo{};
-//        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-//        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-//        poolInfo.pPoolSizes = poolSizes.data();
-//        poolInfo.maxSets = static_cast<uint32_t>(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-//
-//        if (vkCreateDescriptorPool(m_deviceRef, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-//            throw std::runtime_error("failed to create descriptor pool!");
-//        }
-
 
     }
 
@@ -412,10 +340,26 @@ private:
         }
     }
 
-    void createDescriptorSetLayout(){
+    void createDescriptors(){
         descriptorLayout = vtt::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
                 .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr})
+                .build();
+
+        descriptorPool = vtt::DescriptorPool::Builder(device)
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 })
+                .addPoolSize({ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 })
+                .setFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+                .setMaxSetsTimesSizes(1000)
                 .build();
     }
 };

@@ -187,8 +187,8 @@ RECENT REVISION HISTORY:
 //   // returns ok=1 and sets x, y, n if image is a supported format,
 //   // 0 otherwise.
 //
-// Note that stb_image pervasively uses ints in its public API for sizes,
-// including sizes of m_memory buffers. This is now part of the API and thus
+// Note that stb_image pervasively uses ints in its public API for poolSizes,
+// including poolSizes of m_memory buffers. This is now part of the API and thus
 // hard to change without causing breakage. As a result, the various image
 // loaders all have certain limits on image size; these differ somewhat
 // by format but generally boil down to either just under 2GB or just under
@@ -1934,7 +1934,7 @@ typedef struct
    stbi__uint16 dequant[4][64];
    stbi__int16 fast_ac[4][1 << FAST_BITS];
 
-// sizes for components, interleaved MCUs
+// poolSizes for components, interleaved MCUs
    int img_h_max, img_v_max;
    int img_mcu_x, img_mcu_y;
    int img_mcu_w, img_mcu_h;
@@ -3279,7 +3279,7 @@ static int stbi__process_frame_header(stbi__jpeg *z, int scan)
    z->img_v_max = v_max;
    z->img_mcu_w = h_max * 8;
    z->img_mcu_h = v_max * 8;
-   // these sizes can't be more than 17 bits
+   // these poolSizes can't be more than 17 bits
    z->img_mcu_x = (s->img_x + z->img_mcu_w-1) / z->img_mcu_w;
    z->img_mcu_y = (s->img_y + z->img_mcu_h-1) / z->img_mcu_h;
 
@@ -4077,7 +4077,7 @@ static int stbi__zbuild_huffman(stbi__zhuffman *z, const stbi_uc *sizelist, int 
    sizes[0] = 0;
    for (i=1; i < 16; ++i)
       if (sizes[i] > (1 << i))
-         return stbi__err("bad sizes", "Corrupt PNG");
+         return stbi__err("bad poolSizes", "Corrupt PNG");
    code = 0;
    for (i=1; i < 16; ++i) {
       next_code[i] = code;
@@ -4728,7 +4728,7 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
 
          // note that the final byte might overshoot and write more data than desired.
          // we can allocate enough data that this never writes out of m_memory, but it
-         // could also overwrite the next scanline. can it overwrite non-empty data
+         // could also overwrite the next scanline. can it update non-empty data
          // on the next scanline? yes, consider 1-pixel-wide scanlines with 1-bit-per-pixel.
          // so we need to explicitly clamp the final ones
 
