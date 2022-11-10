@@ -20,7 +20,8 @@ namespace vtt {
         Buffer &operator=(const Buffer &) = delete;
         ~Buffer();
 
-        [[nodiscard]] VkBuffer get() const { return m_buffer; }
+        [[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
+        [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
 
         // TODO check alternatives for unmap
         void map();

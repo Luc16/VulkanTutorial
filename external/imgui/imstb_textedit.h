@@ -1135,7 +1135,7 @@ static void stb_textedit_discard_undo(StbUndoState *state)
          STB_TEXTEDIT_memmove(state->undo_char, state->undo_char + n, (size_t) (state->undo_char_point*sizeof(STB_TEXTEDIT_CHARTYPE)));
          for (i=0; i < state->undo_point; ++i)
             if (state->undo_rec[i].char_storage >= 0)
-               state->undo_rec[i].char_storage -= n; // @OPTIMIZE: get rid of char_storage and infer it
+               state->undo_rec[i].char_storage -= n; // @OPTIMIZE: getBuffer rid of char_storage and infer it
       }
       --state->undo_point;
       STB_TEXTEDIT_memmove(state->undo_rec, state->undo_rec+1, (size_t) (state->undo_point*sizeof(state->undo_rec[0])));

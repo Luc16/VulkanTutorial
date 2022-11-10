@@ -33,6 +33,7 @@ namespace vtt {
         imageInfo.format = format;
         imageInfo.tiling = tiling;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage = usage;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = numSamples;
@@ -132,6 +133,8 @@ namespace vtt {
                     0, nullptr,
                     1, &barrier
             );
+
+            m_layout = newLayout;
 
         });
     }

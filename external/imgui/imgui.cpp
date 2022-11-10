@@ -771,7 +771,7 @@ CODE
       associated with it.
 
  Q: What is this library called?
- Q: Which version should I get?
+ Q: Which version should I getBuffer?
  >> This library is called "Dear ImGui", please don't call it "ImGui" :)
  >> See https://www.dearimgui.org/faq for details.
 

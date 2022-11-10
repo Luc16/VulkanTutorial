@@ -42,7 +42,7 @@ namespace vtt {
                                                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        m_deviceRef.copyBuffer(stagingBuffer.get(), m_vertexBuffer->get(), bufferSize);
+        m_deviceRef.copyBuffer(stagingBuffer.getBuffer(), m_vertexBuffer->getBuffer(), bufferSize);
     }
 
     void Model::createIndexBuffer(std::vector<uint32_t>& indices){
@@ -57,7 +57,7 @@ namespace vtt {
                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        m_deviceRef.copyBuffer(stagingBuffer.get(), m_indexBuffer->get(), bufferSize);
+        m_deviceRef.copyBuffer(stagingBuffer.getBuffer(), m_indexBuffer->getBuffer(), bufferSize);
     }
 
     std::unique_ptr<Model> Model::createModelFromFile(Device &device, const std::string &filepath) {
@@ -106,11 +106,11 @@ namespace vtt {
     }
 
     void Model::bind(VkCommandBuffer commandBuffer) {
-        VkBuffer vertexBuffers[] = {m_vertexBuffer->get()};
+        VkBuffer vertexBuffers[] = {m_vertexBuffer->getBuffer()};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         if (m_hasIndexBuffer)
-            vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
     }
 
     void Model::draw(VkCommandBuffer commandBuffer) const {

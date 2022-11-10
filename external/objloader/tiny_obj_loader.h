@@ -2909,7 +2909,7 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
         ss << names[1];
 
         // tinyobjloader does not support multiple groups for a primitive.
-        // Currently we concatinate multiple group names with a space to get
+        // Currently we concatinate multiple group names with a space to getBuffer
         // single group name.
 
         for (size_t i = 2; i < names.size(); i++) {

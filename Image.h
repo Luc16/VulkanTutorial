@@ -19,6 +19,9 @@ namespace vtt {
 
         [[nodiscard]] VkImage image() const { return m_image; }
         [[nodiscard]] VkImageView view() const { return m_imageView; }
+        [[nodiscard]] VkImageLayout layout() const { return m_layout; }
+        void setLayout(VkImageLayout layout) { m_layout = layout; }
+
 
         void transitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
         static VkImageView createSwapChainImageView(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
@@ -33,6 +36,7 @@ namespace vtt {
         VkImage m_image{};
         VkDeviceMemory m_imageMemory{};
         VkImageView m_imageView{};
+        VkImageLayout m_layout{};
 
         const vtt::Device &m_deviceRef;
     };

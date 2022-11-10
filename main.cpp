@@ -310,16 +310,10 @@ private:
         descriptorSets.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
 
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = texture.view();
-        imageInfo.sampler = texture.sampler();
+        VkDescriptorImageInfo imageInfo = texture.descriptorInfo();
 
         for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i]->get();
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+            VkDescriptorBufferInfo bufferInfo = uniformBuffers[i]->descriptorInfo();
 
             vtt::DescriptorWriter(*descriptorLayout, *descriptorPool)
                 .writeBuffer(0, &bufferInfo)

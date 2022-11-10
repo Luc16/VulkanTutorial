@@ -23,6 +23,11 @@ namespace vtt {
         [[nodiscard]] VkImage image() const { return m_textureImage->image(); }
         [[nodiscard]] VkImageView view() const { return m_textureImage->view(); }
         [[nodiscard]] VkSampler sampler() const { return m_textureSampler; }
+        [[nodiscard]] VkDescriptorImageInfo descriptorInfo() const { return VkDescriptorImageInfo {
+            m_textureSampler, m_textureImage->view(), m_textureImage->layout()
+            };
+        }
+
     private:
 
         void createTextureImage(const std::string& texPath);

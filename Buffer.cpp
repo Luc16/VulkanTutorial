@@ -17,6 +17,12 @@ namespace vtt {
         vkFreeMemory(m_deviceRef.device(), m_memory, nullptr);
     }
 
+    VkDescriptorBufferInfo Buffer::descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const {
+        return VkDescriptorBufferInfo{
+                m_buffer, offset, size
+        };
+    }
+
     void Buffer::map() {
         if (m_mapped != nullptr)
             throw std::runtime_error("Trying to map m_mapped m_buffer m_memory!");

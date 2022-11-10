@@ -26,7 +26,7 @@ namespace vtt {
         [[nodiscard]] VkRenderPass renderPass() const { return m_swapChain->renderPass(); }
         [[nodiscard]] float getSwapChainAspectRatio() const {return (float) m_swapChain->width() / (float) m_swapChain->height(); }
         [[nodiscard]] VkCommandBuffer getCurrentCommandBuffer() const {
-            if (!m_isFrameStarted) throw std::runtime_error("Cannot get command buffer when frame not in progress");
+            if (!m_isFrameStarted) throw std::runtime_error("Cannot getBuffer command buffer when frame not in progress");
             return m_commandBuffers[m_currentFrame];
         }
 
