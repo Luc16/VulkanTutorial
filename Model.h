@@ -16,6 +16,7 @@ namespace vtt {
         struct Vertex {
             glm::vec3 pos;
             glm::vec3 color;
+            glm::vec3 normal;
             glm::vec2 texCoord;
 
             bool operator ==(const Vertex& other) const{
@@ -23,7 +24,7 @@ namespace vtt {
             }
 
             static VkVertexInputBindingDescription getBindingDescription();
-            static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+            static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
         };
 
         Model(Device &device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);

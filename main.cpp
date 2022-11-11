@@ -25,6 +25,8 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
+    // TODO ver exatamente o alinhamento certo
+    alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.0f));
 };
 
 bool forward = false, backward = false, up = false, down = false, left = false, right = false;
@@ -360,8 +362,8 @@ private:
 
 int main() {
 
-//    system("glslc ../shaders/shader.vert -o ../shaders/vert.spv");
-//    system("glslc ../shaders/shader.frag -o ../shaders/frag.spv");
+    system("glslc ../shaders/shader.vert -o ../shaders/vert.spv");
+    system("glslc ../shaders/shader.frag -o ../shaders/frag.spv");
     HelloTriangleApplication app{};
 
     try {
