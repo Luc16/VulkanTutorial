@@ -9,10 +9,14 @@
 
 #include "Model.h"
 #include "Texture.h"
+#include "RenderSystem.h"
 
 namespace vtt {
     class DrawableObject {
     public:
+        struct PushConstantData {
+            glm::mat4 modelMatrix{1.f};
+        };
 
         explicit DrawableObject(std::shared_ptr<vtt::Model> model, std::shared_ptr<vtt::Texture> texture = nullptr):
             m_model(std::move(model)), m_texture(std::move(texture)) {}
@@ -23,13 +27,13 @@ namespace vtt {
 
         void translate(glm::vec3 move) { m_translation += move; }
         void rotateAxis(int axis, float angle) { m_rotation[axis] += angle;}
-        void resetRotation() {m_rotation *= 0.0f; }
-        void render(VkCommandBuffer commandBuffer);
+        void resetRotation(int axis) {m_rotation[axis] = 0; }
+        void render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer);
 
         [[nodiscard]] glm::mat4 modelMatrix() const;
         [[nodiscard]] VkDescriptorImageInfo textureInfo() const { return m_texture->descriptorInfo();}
-    private:
         glm::vec3 m_translation{};
+    private:
         glm::vec3 m_scale{1.f, 1.f, 1.f};
         glm::vec3 m_rotation{};
 

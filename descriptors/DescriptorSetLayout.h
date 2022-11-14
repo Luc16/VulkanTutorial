@@ -15,7 +15,7 @@ namespace vtt {
             explicit Builder(const Device& device): m_deviceRef(device) {}
 
             Builder& addBinding(VkDescriptorSetLayoutBinding binding);
-            [[nodiscard]] std::unique_ptr<DescriptorSetLayout> build() const;
+            [[nodiscard]] DescriptorSetLayout build() const;
 
         private:
             const Device& m_deviceRef;

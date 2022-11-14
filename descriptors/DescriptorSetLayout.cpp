@@ -33,7 +33,7 @@ namespace vtt {
         return *this;
     }
 
-    std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::Builder::build() const {
-        return std::make_unique<DescriptorSetLayout>(m_deviceRef, bindings);
+    DescriptorSetLayout DescriptorSetLayout::Builder::build() const {
+        return {m_deviceRef, bindings};
     }
 }

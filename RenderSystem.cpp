@@ -4,9 +4,9 @@
 
 #include "RenderSystem.h"
 namespace vtt {
-    RenderSystem::RenderSystem(const Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, const ShaderPaths& shaderPaths,
+    RenderSystem::RenderSystem(const Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantsSize, const ShaderPaths& shaderPaths,
                                     const std::function<void(Pipeline::PipelineConfigInfo&)>& configurePipeline): m_deviceRef(device) {
-        createPipelineLayout(globalSetLayout);
+        createPipelineLayout(globalSetLayout, pushConstantsSize);
         createPipeline(renderPass, shaderPaths, configurePipeline);
     }
 
@@ -20,14 +20,19 @@ namespace vtt {
                                 0, 1, descriptorSet, 0, nullptr);
     }
 
-    void RenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout) {
+    void RenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize) {
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = pushConstantSize;
+
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-        pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout(m_deviceRef.device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");

@@ -26,10 +26,8 @@ const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
 
 struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
-    // TODO ver exatamente o alinhamento certo
     alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.0f));
 };
 
@@ -76,7 +74,6 @@ private:
     float scale = 1, speed = 0;
     int axis = 0;
     bool resetPos = true;
-    bool lineMode = false;
 
     void mainLoop() {
 
@@ -86,32 +83,25 @@ private:
 
         camera.setViewDirection({2, 2, 2}, {-1, -1, -1});
 
+
         auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
-                .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr})
-                .build();
+                .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                             VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}).build();
+        auto roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
+                                                       {uniformBuffers[0]->descriptorInfo()},{vikingRoom.textureInfo()});
+
+
         auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
                 .build();
-        std::vector<VkDescriptorSet> roomDescriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-        VkDescriptorImageInfo imageInfo = vikingRoom.textureInfo();
+        std::vector<VkDescriptorSet> defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
 
-        std::vector<VkDescriptorSet> defaultDescriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-        for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-            VkDescriptorBufferInfo bufferInfo = uniformBuffers[i]->descriptorInfo();
 
-            vtt::DescriptorWriter(*defaultDescriptorLayout, *descriptorPool)
-                    .writeBuffer(0, &bufferInfo)
-                    .build(defaultDescriptorSets[i]);
-
-            vtt::DescriptorWriter(*roomDescriptorLayout, *descriptorPool)
-                    .writeBuffer(0, &bufferInfo)
-                    .writeImage(1, &imageInfo)
-                    .build(roomDescriptorSets[i]);
-        }
-
-        vtt::RenderSystem roomSystem(device, renderer.renderPass(), roomDescriptorLayout->descriptorSetLayout(), vikingShaderPaths);
-        vtt::RenderSystem defaultSystem(device, renderer.renderPass(), defaultDescriptorLayout->descriptorSetLayout(), shaderPaths);
+        vtt::RenderSystem roomSystem(device, renderer.renderPass(), roomDescriptorLayout.descriptorSetLayout(),
+                                     sizeof(vtt::DrawableObject::PushConstantData), vikingShaderPaths);
+        vtt::RenderSystem defaultSystem(device, renderer.renderPass(), defaultDescriptorLayout.descriptorSetLayout(),
+                                        sizeof(vtt::DrawableObject::PushConstantData), shaderPaths);
 
         while (!window.shouldClose()) {
             glfwPollEvents();
@@ -127,17 +117,17 @@ private:
             }
 
 //            cameraController.moveCamera(window.window(), frameTime, camera);
-            updateUniformBuffer(renderer.currentFrame());
+            updateUniformBuffer(renderer.currentFrame(), frameTime);
 
             renderer.runFrame([&](VkCommandBuffer commandBuffer){
                 showImGui();
 
                 renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
                     roomSystem.bind(commandBuffer, &roomDescriptorSets[renderer.currentFrame()]);
-                    vikingRoom.render(commandBuffer);
+                    vikingRoom.render(roomSystem, commandBuffer);
 
                     defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
-                    plane.render(commandBuffer);
+                    plane.render(defaultSystem, commandBuffer);
                 });
             });
 
@@ -167,6 +157,7 @@ private:
 
         // main m_windowRef
         {
+
             static int counter = 0;
 
             ImGui::Begin("Control Panel");
@@ -174,20 +165,32 @@ private:
             ImGui::Text("Other windows");
             ImGui::Checkbox("Demo Window", &show_demo_window);
             ImGui::Checkbox("Another Window", &show_another_window);
-            ImGui::Checkbox("Activate line polygon mode", &lineMode);
-            ImGui::Text("Choose rotation axis:");
-            ImGui::RadioButton("X-axis", &axis, 2); ImGui::SameLine();
-            ImGui::RadioButton("Y-axis", &axis, 1); ImGui::SameLine();
-            ImGui::RadioButton("Z-axis", &axis, 0);
-            ImGui::Checkbox("Reset Position", &resetPos);
-            ImGui::SliderFloat("scale", &scale, 0.1f, 4.0f);
-            ImGui::SliderFloat("speed", &speed, -4.0f, 4.0f);
+
+            if (ImGui::CollapsingHeader("Viking Room")) {
+
+                ImGui::Text("Choose rotation axis:");
+                ImGui::RadioButton("X-axis", &axis, 2); ImGui::SameLine();
+                ImGui::RadioButton("Y-axis", &axis, 1); ImGui::SameLine();
+                ImGui::RadioButton("Z-axis", &axis, 0);
+                ImGui::Checkbox("Reset Position", &resetPos);
+                ImGui::SliderFloat("scale", &scale, 0.1f, 4.0f);
+                ImGui::SliderFloat("speed", &speed, -4.0f, 4.0f);
 //            static auto color = glm::vec3(0.0f);
 //            ImGui::ColorEdit3("clear color", (float *) &color);
 
-            if (ImGui::Button("Reset speed")) speed = 0;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+                if (ImGui::Button("Reset speed")) speed = 0;
+            }
+
+            if (ImGui::CollapsingHeader("Plane")) {
+
+                ImGui::SliderFloat("x", &plane.m_translation.x, -2.0f, 2.0f);
+                ImGui::SliderFloat("y", &plane.m_translation.y, -2.0f, 2.0f);
+                ImGui::SliderFloat("z", &plane.m_translation.z, -2.0f, 2.0f);
+//            static auto color = glm::vec3(0.0f);
+//            ImGui::ColorEdit3("clear color", (float *) &color);
+
+                if (ImGui::Button("Reset speed")) speed = 0;
+            }
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                         ImGui::GetIO().Framerate);
@@ -206,36 +209,50 @@ private:
 
     }
 
-    void updateUniformBuffer(uint32_t currentImage){
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime-startTime).count();
-        static std::array<float, 3> angles = {0, 0, 0};
+    void updateUniformBuffer(uint32_t frameIndex, float deltaTime){
         if (resetPos){
-            for (int i = 0; i < angles.size(); ++i) {
-                if (i != axis) angles[i] = 0;
+            for (int i = 0; i < 3; i++){
+                if (i != axis) vikingRoom.resetRotation(i);
             }
         }
-        angles[axis] += speed * deltaTime * glm::radians(90.0f);
+        vikingRoom.rotateAxis(axis, speed * deltaTime * glm::radians(90.0f));
+
+
 
         UniformBufferObject ubo{};
-        ubo.model = glm::scale(glm::mat4(1.0f), glm::vec3(scale))
-                * glm::rotate(glm::mat4(1.0f), angles[0],glm::vec3(0.0f, 0.0f, 1.0f))
-                * glm::rotate(glm::mat4(1.0f), angles[1],glm::vec3(0.0f, 1.0f, 0.0f))
-                * glm::rotate(glm::mat4(1.0f), angles[2],glm::vec3(1.0f, 0.0f, 0.0f));
-
         camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 100.f);
         ubo.view = camera.getView();
         ubo.proj = camera.getProjection();
+        uniformBuffers[frameIndex]->singleWrite(&ubo);
 
-        uniformBuffers[currentImage]->singleWrite(&ubo);
-        startTime = std::chrono::high_resolution_clock::now();
+    }
+
+    std::vector<VkDescriptorSet> createDescriptorSets(vtt::DescriptorSetLayout& layout,
+                                                      std::vector<VkDescriptorBufferInfo> bufferInfos,
+                                                      std::vector<VkDescriptorImageInfo> imageInfos = {}) {
+        std::vector<VkDescriptorSet> descriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+        for (auto & descriptorSet : descriptorSets) {
+
+            auto writer = vtt::DescriptorWriter(layout, *descriptorPool);
+
+            for (auto& bufferInfo : bufferInfos){
+                writer.writeBuffer(0, &bufferInfo);
+            }
+
+            for (auto& imageInfo : imageInfos){
+                writer.writeImage(1, &imageInfo);
+            }
+
+            writer.build(descriptorSet);
+        }
+
+        return descriptorSets;
     }
 
     void initVulkan() {
         createUniformBuffers();
-        createDescriptors();
+        createDescriptorPool();
 
         renderer.activateImGui(descriptorPool->descriptorPool());
     }
@@ -251,7 +268,7 @@ private:
         }
     }
 
-    void createDescriptors(){
+    void createDescriptorPool(){
 
         descriptorPool = vtt::DescriptorPool::Builder(device)
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })
