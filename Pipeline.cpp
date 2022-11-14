@@ -24,8 +24,8 @@ namespace vtt {
 
         if (configInfo.pipelineLayout == VK_NULL_HANDLE) throw std::runtime_error("Trying to initialize graphics pipeline with no layout");
         if (configInfo.renderPass == VK_NULL_HANDLE) throw std::runtime_error("Trying to initialize graphics pipeline with no renderPass");
-        auto vertShaderCode = readFile("../shaders/vert.spv");
-        auto fragShaderCode = readFile("../shaders/frag.spv");
+        auto vertShaderCode = readFile(vertShaderPath);
+        auto fragShaderCode = readFile(fragShaderPath);
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);

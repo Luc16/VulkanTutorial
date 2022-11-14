@@ -17,6 +17,10 @@
 #include "descriptors/DescriptorSetLayout.h"
 #include "descriptors/DescriptorPool.h"
 #include "descriptors/DescriptorWriter.h"
+#include "Camera.h"
+#include "CameraMovementController.h"
+#include "RenderSystem.h"
+#include "DrawableObject.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
@@ -37,44 +41,36 @@ public:
     void run() {
         initVulkan();
         mainLoop();
-        cleanup();
     }
 
 private:
     const std::string modelPath = "../models/viking_room.obj";
     const std::string texturePath = "../textures/viking_room.png";
-    const std::string fragPath = "../shaders/frag.spv";
-    const std::string vertPath = "../shaders/vert.spv";
+    vtt::RenderSystem::ShaderPaths vikingShaderPaths = vtt::RenderSystem::ShaderPaths {
+        "../shaders/viking_room.vert.spv",
+        "../shaders/viking_room.frag.spv"
+    };
 
-    // config
+    const std::string planeModelPath = "../models/quad.obj";
+    vtt::RenderSystem::ShaderPaths shaderPaths = vtt::RenderSystem::ShaderPaths {
+            "../shaders/vert.spv",
+            "../shaders/frag.spv"
+    };
+
     vtt::Window window{WIDTH, HEIGHT, "Vulkan"};
     vtt::Device device{window};
-    // update
     std::unique_ptr<vtt::DescriptorPool> descriptorPool;
 
     vtt::Renderer renderer{window, device};
-    std::unique_ptr<vtt::DescriptorSetLayout> descriptorLayout;
-    // config
-    VkPipelineLayout pipelineLayout{};
 
-    std::unique_ptr<vtt::Pipeline> pipelineFill;
-    std::unique_ptr<vtt::Pipeline> pipelineLine;
+    vtt::DrawableObject vikingRoom{vtt::Model::createModelFromFile(device, modelPath), std::make_shared<vtt::Texture>(device, texturePath)};
+    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, planeModelPath)};
 
-    std::unique_ptr<vtt::Model> model = vtt::Model::createModelFromFile(device, modelPath);
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
-    vtt::Texture texture{device, texturePath};
 
-    // update
-    std::vector<VkDescriptorSet> descriptorSets;
 
-    // camera
-    glm::vec3 pos{2.0f, 2.0f, 2.0f};
-    glm::vec3 dir{-1.0f, -1.0f, -1.0f};
-    glm::vec3 cameraPlane{-1.0f, 0.0f, 1.0f};
-
-    // fps
-    double startTime{};
-    uint32_t frames = 0;
+    vtt::Camera camera{};
+    vtt::CameraMovementController cameraController{};
 
     //imgui stuff
     float scale = 1, speed = 0;
@@ -82,100 +78,84 @@ private:
     bool resetPos = true;
     bool lineMode = false;
 
-    // movement
-    float cameraSpeed = 1e-2;
-    float angleSpeed = 1e-3;
-
     void mainLoop() {
-        startTime = glfwGetTime();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float frameTime, accTime = 0;
+        uint32_t frames = 0;
+
+        camera.setViewDirection({2, 2, 2}, {-1, -1, -1});
+
+        auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
+                .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr})
+                .build();
+        auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
+                .build();
+        std::vector<VkDescriptorSet> roomDescriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+        VkDescriptorImageInfo imageInfo = vikingRoom.textureInfo();
+
+        std::vector<VkDescriptorSet> defaultDescriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
+            VkDescriptorBufferInfo bufferInfo = uniformBuffers[i]->descriptorInfo();
+
+            vtt::DescriptorWriter(*defaultDescriptorLayout, *descriptorPool)
+                    .writeBuffer(0, &bufferInfo)
+                    .build(defaultDescriptorSets[i]);
+
+            vtt::DescriptorWriter(*roomDescriptorLayout, *descriptorPool)
+                    .writeBuffer(0, &bufferInfo)
+                    .writeImage(1, &imageInfo)
+                    .build(roomDescriptorSets[i]);
+        }
+
+        vtt::RenderSystem roomSystem(device, renderer.renderPass(), roomDescriptorLayout->descriptorSetLayout(), vikingShaderPaths);
+        vtt::RenderSystem defaultSystem(device, renderer.renderPass(), defaultDescriptorLayout->descriptorSetLayout(), shaderPaths);
+
         while (!window.shouldClose()) {
             glfwPollEvents();
-            glfwSetKeyCallback(window.window(), keyCallback);
-            handleInputs();
-            drawFrame();
-            showFps();
+
+            // update fps
+            {
+                auto newTime = std::chrono::high_resolution_clock::now();
+                frameTime =
+                        std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+                currentTime = newTime;
+                accTime += frameTime;
+                frames++;
+            }
+
+//            cameraController.moveCamera(window.window(), frameTime, camera);
+            updateUniformBuffer(renderer.currentFrame());
+
+            renderer.runFrame([&](VkCommandBuffer commandBuffer){
+                showImGui();
+
+                renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
+                    roomSystem.bind(commandBuffer, &roomDescriptorSets[renderer.currentFrame()]);
+                    vikingRoom.render(commandBuffer);
+
+                    defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
+                    plane.render(commandBuffer);
+                });
+            });
+
+            // show fps
+            if (accTime > 0.5f) {
+                double fps = double(frames) / accTime;
+
+                std::stringstream ss;
+                ss << "Vulkan " << "[" << fps << " FPS]";
+
+                glfwSetWindowTitle(window.window(), ss.str().c_str());
+
+                frames = 0;
+                accTime = 0;
+            }
         }
 
         vkDeviceWaitIdle(device.device());
-    }
-
-    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
-        if (action == GLFW_PRESS)
-            switch (key) {
-                case GLFW_KEY_W: forward = true; break;
-                case GLFW_KEY_S: backward = true; break;
-                case GLFW_KEY_Q: up = true; break;
-                case GLFW_KEY_E: down = true; break;
-                case GLFW_KEY_A: left = true; break;
-                case GLFW_KEY_D: right = true; break;
-                default: break;
-            }
-        else if (action == GLFW_RELEASE)
-            switch (key) {
-                case GLFW_KEY_W: forward = false; break;
-                case GLFW_KEY_S: backward = false; break;
-                case GLFW_KEY_Q: up = false; break;
-                case GLFW_KEY_E: down = false; break;
-                case GLFW_KEY_A: left = false; break;
-                case GLFW_KEY_D: right = false; break;
-                default: break;
-            }
-    }
-
-    void handleInputs(){
-        if (glm::dot(dir, dir) - 1 > 0.00001) dir = glm::normalize(dir);
-        if (forward) {
-            pos += cameraSpeed*dir;
-        } else if (backward) {
-            pos -= cameraSpeed*dir;
-        }
-        if (up) {
-            auto otherPlane = glm::cross(dir, cameraPlane);
-            dir = glm::rotate(glm::mat4(1.0f), angleSpeed, otherPlane) * glm::vec4(dir, 0);
-            cameraPlane = glm::rotate(glm::mat4(1.0f), angleSpeed, otherPlane) * glm::vec4(cameraPlane, 0);
-        } else if (down) {
-            auto otherPlane = glm::cross(dir, cameraPlane);
-            dir = glm::rotate(glm::mat4(1.0f), -angleSpeed, otherPlane) * glm::vec4(dir, 0);
-            cameraPlane = glm::rotate(glm::mat4(1.0f), -angleSpeed, otherPlane) * glm::vec4(cameraPlane, 0);
-        }
-        if (left) {
-            dir = glm::rotate(glm::mat4(1.0f), angleSpeed, cameraPlane) * glm::vec4(dir, 0);
-//            cameraPlane = glm::rotate(glm::mat4(1.0f), angleSpeed, otherPlane) * glm::vec4(cameraPlane, 0);
-        } else if (right) {
-            dir = glm::rotate(glm::mat4(1.0f), -angleSpeed, cameraPlane) * glm::vec4(dir, 0);
-//            cameraPlane = glm::rotate(glm::mat4(1.0f), -angleSpeed, otherPlane) * glm::vec4(cameraPlane, 0);
-        }
-
-
-    }
-
-    void showFps(){
-        double currentTime = glfwGetTime();
-        double elapsedTime = currentTime - startTime;
-        frames++;
-        if (elapsedTime > 0.5){
-
-            double fps = double(frames) / elapsedTime;
-
-            std::stringstream ss;
-            ss << "Vulkan " << "[" << fps << " FPS]";
-
-            glfwSetWindowTitle(window.window(), ss.str().c_str());
-
-            frames = 0;
-            startTime = currentTime;
-        }
-
-    }
-
-    void drawFrame(){
-        updateUniformBuffer(renderer.currentFrame());
-
-        renderer.runFrame([this](VkCommandBuffer commandBuffer){
-            showImGui();
-            recordCommandBuffer();
-        });
-
     }
 
     void showImGui(){
@@ -226,21 +206,6 @@ private:
 
     }
 
-    void recordCommandBuffer(){
-        renderer.runRenderPass([this](VkCommandBuffer& commandBuffer){
-            if (lineMode) pipelineLine->bind(commandBuffer);
-            else pipelineFill->bind(commandBuffer);
-
-            model->bind(commandBuffer);
-
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                    0, 1, &descriptorSets[renderer.currentFrame()], 0, nullptr);
-            model->draw(commandBuffer);
-
-        });
-
-    }
-
     void updateUniformBuffer(uint32_t currentImage){
         static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -259,70 +224,20 @@ private:
                 * glm::rotate(glm::mat4(1.0f), angles[0],glm::vec3(0.0f, 0.0f, 1.0f))
                 * glm::rotate(glm::mat4(1.0f), angles[1],glm::vec3(0.0f, 1.0f, 0.0f))
                 * glm::rotate(glm::mat4(1.0f), angles[2],glm::vec3(1.0f, 0.0f, 0.0f));
-        ubo.view = glm::lookAt(pos, pos + dir,cameraPlane);
-        ubo.proj = glm::perspective(glm::radians(45.0f), renderer.getSwapChainAspectRatio(),
-                                    0.1f, 100.0f);
 
-        ubo.proj[1][1] *= -1;
+        camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 100.f);
+        ubo.view = camera.getView();
+        ubo.proj = camera.getProjection();
 
         uniformBuffers[currentImage]->singleWrite(&ubo);
         startTime = std::chrono::high_resolution_clock::now();
     }
 
-    void cleanup() {
-        vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
-    }
-
     void initVulkan() {
         createUniformBuffers();
         createDescriptors();
-        createGraphicsPipeline();
 
         renderer.activateImGui(descriptorPool->descriptorPool());
-        createDescriptorSets();
-        // control
-
-    }
-
-    void createGraphicsPipeline(){
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{descriptorLayout->descriptorSetLayout()};
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-        pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
-
-        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create pipeline layout!");
-        }
-
-        auto pipelineConfigInfo = vtt::Pipeline::defaultConfigInfo(pipelineLayout, renderer.renderPass());
-
-        pipelineFill = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
-                                                   "../shaders/frag.spv", pipelineConfigInfo);
-
-        pipelineConfigInfo.enablePolygonLineMode();
-        pipelineLine = std::make_unique<vtt::Pipeline>(device, "../shaders/vert.spv",
-                                                       "../shaders/frag.spv", pipelineConfigInfo);
-
-    }
-
-    void createDescriptorSets() {
-        descriptorSets.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-
-
-        VkDescriptorImageInfo imageInfo = texture.descriptorInfo();
-
-        for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-            VkDescriptorBufferInfo bufferInfo = uniformBuffers[i]->descriptorInfo();
-
-            vtt::DescriptorWriter(*descriptorLayout, *descriptorPool)
-                .writeBuffer(0, &bufferInfo)
-                .writeImage(1, &imageInfo)
-                .build(descriptorSets[i]);
-        }
-
     }
 
     void createUniformBuffers() {
@@ -337,10 +252,6 @@ private:
     }
 
     void createDescriptors(){
-        descriptorLayout = vtt::DescriptorSetLayout::Builder(device)
-                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
-                .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr})
-                .build();
 
         descriptorPool = vtt::DescriptorPool::Builder(device)
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })

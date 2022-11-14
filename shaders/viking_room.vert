@@ -15,14 +15,15 @@ layout(binding = 0) uniform UniformBufferObject {
 
 const float AMBIENT = 0.05;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec2 fragTexCoord;
+layout(location = 1) out float fragLightIntensity;
 
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
 
     vec3 worldNormal = normalize(mat3(ubo.model) * inNormal);
 
-    float lightIntensity = AMBIENT + max(dot(worldNormal, ubo.lightDirection), 0);
+    fragLightIntensity = AMBIENT + max(dot(worldNormal, ubo.lightDirection), 0);
 
-    fragColor = lightIntensity*inColor;
+    fragTexCoord = inTexCoord;
 }
