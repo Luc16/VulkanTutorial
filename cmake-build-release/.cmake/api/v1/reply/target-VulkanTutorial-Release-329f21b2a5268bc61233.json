@@ -80,7 +80,8 @@
 				44,
 				46,
 				48,
-				50
+				50,
+				52
 			]
 		}
 	],
@@ -152,7 +153,8 @@
 				44,
 				46,
 				48,
-				50
+				50,
+				52
 			]
 		},
 		{
@@ -185,7 +187,8 @@
 				45,
 				47,
 				49,
-				51
+				51,
+				53
 			]
 		}
 	],
@@ -474,6 +477,17 @@
 		{
 			"backtrace" : 1,
 			"path" : "RenderSystem.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "VulkanApp.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "VulkanApp.h",
 			"sourceGroupIndex" : 1
 		}
 	],

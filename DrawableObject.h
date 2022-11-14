@@ -25,6 +25,7 @@ namespace vtt {
         DrawableObject &operator=(const DrawableObject &) = delete;
         ~DrawableObject() = default;
 
+        void setScale(float scale) { m_scale = glm::vec3(scale); }
         void translate(glm::vec3 move) { m_translation += move; }
         void rotateAxis(int axis, float angle) { m_rotation[axis] += angle;}
         void resetRotation(int axis) {m_rotation[axis] = 0; }

@@ -4,7 +4,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <sstream>
-#include <fstream>
 #include "external/imgui/imgui.h"
 #include "external/objloader/tiny_obj_loader.h"
 #include "SwapChain.h"
@@ -12,18 +11,17 @@
 #include "Model.h"
 #include "utils.h"
 #include "Texture.h"
-#include "Pipeline.h"
-#include "Renderer.h"
 #include "descriptors/DescriptorSetLayout.h"
-#include "descriptors/DescriptorPool.h"
 #include "descriptors/DescriptorWriter.h"
 #include "Camera.h"
 #include "CameraMovementController.h"
 #include "RenderSystem.h"
 #include "DrawableObject.h"
+#include "VulkanApp.h"
 
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
+const std::string APP_NAME = "Vulkan";
 
 struct UniformBufferObject {
     alignas(16) glm::mat4 view;
@@ -31,15 +29,10 @@ struct UniformBufferObject {
     alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.0f));
 };
 
-bool forward = false, backward = false, up = false, down = false, left = false, right = false;
 
-class HelloTriangleApplication {
+class TestApp: public vtt::VulkanApp {
 public:
-
-    void run() {
-        initVulkan();
-        mainLoop();
-    }
+    TestApp(int width, int height, const std::string &appName): VulkanApp(width, height, appName) {}
 
 private:
     const std::string modelPath = "../models/viking_room.obj";
@@ -55,17 +48,15 @@ private:
             "../shaders/frag.spv"
     };
 
-    vtt::Window window{WIDTH, HEIGHT, "Vulkan"};
-    vtt::Device device{window};
-    std::unique_ptr<vtt::DescriptorPool> descriptorPool;
-
-    vtt::Renderer renderer{window, device};
-
     vtt::DrawableObject vikingRoom{vtt::Model::createModelFromFile(device, modelPath), std::make_shared<vtt::Texture>(device, texturePath)};
     vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, planeModelPath)};
 
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
+    std::vector<VkDescriptorSet> roomDescriptorSets;
+    std::vector<VkDescriptorSet> defaultDescriptorSets;
 
+    vtt::RenderSystem roomSystem{device};
+    vtt::RenderSystem defaultSystem{device};
 
     vtt::Camera camera{};
     vtt::CameraMovementController cameraController{};
@@ -75,49 +66,44 @@ private:
     int axis = 0;
     bool resetPos = true;
 
-    void mainLoop() {
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float frameTime, accTime = 0;
-        uint32_t frames = 0;
-
+    void onCreate() override {
         camera.setViewDirection({2, 2, 2}, {-1, -1, -1});
 
+        createUniformBuffers();
 
+        // Room render system
         auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
                 .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                              VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}).build();
-        auto roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
+        roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
                                                        {uniformBuffers[0]->descriptorInfo()},{vikingRoom.textureInfo()});
+        roomSystem.createPipelineLayout(roomDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
+        roomSystem.createPipeline(renderer.renderPass(), vikingShaderPaths);
 
-
+        // Default render system
         auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
                 .build();
-        std::vector<VkDescriptorSet> defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
+        defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
 
+        defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
+        defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
+    }
 
-        vtt::RenderSystem roomSystem(device, renderer.renderPass(), roomDescriptorLayout.descriptorSetLayout(),
-                                     sizeof(vtt::DrawableObject::PushConstantData), vikingShaderPaths);
-        vtt::RenderSystem defaultSystem(device, renderer.renderPass(), defaultDescriptorLayout.descriptorSetLayout(),
-                                        sizeof(vtt::DrawableObject::PushConstantData), shaderPaths);
+    void createUniformBuffers() {
+        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        uniformBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
+            uniformBuffers[i] = std::make_unique<vtt::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        }
+    }
 
-        while (!window.shouldClose()) {
-            glfwPollEvents();
-
-            // update fps
-            {
-                auto newTime = std::chrono::high_resolution_clock::now();
-                frameTime =
-                        std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-                currentTime = newTime;
-                accTime += frameTime;
-                frames++;
-            }
+    void mainLoop(float deltaTime) override {
 
 //            cameraController.moveCamera(window.window(), frameTime, camera);
-            updateUniformBuffer(renderer.currentFrame(), frameTime);
+            updateUniformBuffer(renderer.currentFrame(), deltaTime);
 
             renderer.runFrame([&](VkCommandBuffer commandBuffer){
                 showImGui();
@@ -131,21 +117,6 @@ private:
                 });
             });
 
-            // show fps
-            if (accTime > 0.5f) {
-                double fps = double(frames) / accTime;
-
-                std::stringstream ss;
-                ss << "Vulkan " << "[" << fps << " FPS]";
-
-                glfwSetWindowTitle(window.window(), ss.str().c_str());
-
-                frames = 0;
-                accTime = 0;
-            }
-        }
-
-        vkDeviceWaitIdle(device.device());
     }
 
     void showImGui(){
@@ -157,8 +128,6 @@ private:
 
         // main m_windowRef
         {
-
-            static int counter = 0;
 
             ImGui::Begin("Control Panel");
 
@@ -215,9 +184,8 @@ private:
                 if (i != axis) vikingRoom.resetRotation(i);
             }
         }
+        vikingRoom.setScale(scale);
         vikingRoom.rotateAxis(axis, speed * deltaTime * glm::radians(90.0f));
-
-
 
         UniformBufferObject ubo{};
         camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 100.f);
@@ -250,49 +218,13 @@ private:
         return descriptorSets;
     }
 
-    void initVulkan() {
-        createUniformBuffers();
-        createDescriptorPool();
-
-        renderer.activateImGui(descriptorPool->descriptorPool());
-    }
-
-    void createUniformBuffers() {
-        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-        uniformBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-
-        for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-            uniformBuffers[i] = std::make_unique<vtt::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        }
-    }
-
-    void createDescriptorPool(){
-
-        descriptorPool = vtt::DescriptorPool::Builder(device)
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 })
-                .addPoolSize({ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 })
-                .setFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
-                .setMaxSetsTimesSizes(1000)
-                .build();
-    }
 };
 
 int main() {
 
-    system("glslc ../shaders/shader.vert -o ../shaders/vert.spv");
-    system("glslc ../shaders/shader.frag -o ../shaders/frag.spv");
-    HelloTriangleApplication app{};
+//    system("glslc ../shaders/shader.vert -o ../shaders/vert.spv");
+//    system("glslc ../shaders/shader.frag -o ../shaders/frag.spv");
+    TestApp app{WIDTH, HEIGHT, APP_NAME};
 
     try {
         app.run();
