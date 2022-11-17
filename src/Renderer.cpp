@@ -4,9 +4,9 @@
 
 #include <stdexcept>
 #include "Renderer.h"
-#include "external/imgui/imgui_impl_vulkan.h"
-#include "external/imgui/imgui_impl_glfw.h"
-#include "external/imgui/imgui_internal.h"
+#include "../external/imgui/imgui_impl_vulkan.h"
+#include "../external/imgui/imgui_impl_glfw.h"
+#include "../external/imgui/imgui_internal.h"
 
 namespace vtt {
 

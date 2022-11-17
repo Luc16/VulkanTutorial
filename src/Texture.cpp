@@ -4,7 +4,7 @@
 
 #include "Texture.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stbimage/stb_image.h"
+#include "../external/stbimage/stb_image.h"
 
 
 namespace vtt {

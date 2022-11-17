@@ -4,7 +4,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #define GLM_ENABLE_EXPERIMENTAL
 #include "Model.h"
-#include "external/objloader/tiny_obj_loader.h"
+#include "../external/objloader/tiny_obj_loader.h"
 #include <glm/gtx/hash.hpp>
 
 namespace std {
@@ -88,15 +88,17 @@ namespace vtt {
                         attrib.colors[3 * index.vertex_index + 1],
                         attrib.colors[3 * index.vertex_index + 2],
                 };
-                vertex.normal = {
-                        attrib.normals[3 * index.normal_index + 0],
-                        attrib.normals[3 * index.normal_index + 1],
-                        attrib.normals[3 * index.normal_index + 2],
-                };
-                vertex.texCoord = {
-                        attrib.texcoords[2 * index.texcoord_index],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
-                };
+                if (index.normal_index > 0)
+                    vertex.normal = {
+                            attrib.normals[3 * index.normal_index + 0],
+                            attrib.normals[3 * index.normal_index + 1],
+                            attrib.normals[3 * index.normal_index + 2],
+                    };
+                if (index.texcoord_index > 0)
+                    vertex.texCoord = {
+                            attrib.texcoords[2 * index.texcoord_index],
+                            1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
+                    };
 
                 if (uniqueVertices.count(vertex) == 0){
                     uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());

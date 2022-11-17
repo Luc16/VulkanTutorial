@@ -29,6 +29,7 @@ namespace vtt {
     }
 
     void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
+        m_translation = position;
         const glm::vec3 w{glm::normalize(direction)};
         const glm::vec3 u{glm::normalize(glm::cross(w, up))};
         const glm::vec3 v{glm::cross(w, u)};

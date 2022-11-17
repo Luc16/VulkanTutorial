@@ -10,6 +10,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
     vec3 lightDirection;
+    float time;
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -21,7 +22,9 @@ const float AMBIENT = 0.05;
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * push.model * vec4(inPosition, 1.0);
+    vec4 pos = vec4(inPosition - vec3(0, 1, 0) * ubo.time, 1.0);
+
+    gl_Position = ubo.proj * ubo.view * push.model * pos;
 
     vec3 worldNormal = normalize(mat3(push.model) * inNormal);
 

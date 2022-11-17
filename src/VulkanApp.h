@@ -7,8 +7,8 @@
 
 #include <sstream>
 #include <fstream>
-#include "external/imgui/imgui.h"
-#include "external/objloader/tiny_obj_loader.h"
+#include "../external/imgui/imgui.h"
+#include "../external/objloader/tiny_obj_loader.h"
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Model.h"
