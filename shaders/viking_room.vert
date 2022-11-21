@@ -10,7 +10,6 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
     vec3 lightDirection;
-    float time;
 } ubo;
 
 layout(push_constant) uniform Push {
