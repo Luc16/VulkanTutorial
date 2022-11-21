@@ -27,7 +27,6 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
     alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f));
-    alignas(4) float time;
 };
 
 
@@ -49,15 +48,10 @@ private:
             "../shaders/default.frag.spv"
     };
 
-    const std::string sphereModelPath = "../models/axis.obj";
-    vtt::RenderSystem::ShaderPaths sphereShaderPaths = vtt::RenderSystem::ShaderPaths {
-            "../shaders/sphere.vert.spv",
-            "../shaders/sphere.frag.spv"
-    };
-
     vtt::DrawableObject vikingRoom{vtt::Model::createModelFromFile(device, modelPath), std::make_shared<vtt::Texture>(device, texturePath)};
     vtt::DrawableObject axis{vtt::Model::createModelFromFile(device, axisModelPath)};
     vtt::DrawableObject sphere{vtt::Model::createModelFromFile(device, "../models/sphere.obj")};
+    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, "../models/quad.obj")};
 
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
     std::vector<VkDescriptorSet> roomDescriptorSets;
@@ -65,26 +59,28 @@ private:
 
     vtt::RenderSystem roomSystem{device};
     vtt::RenderSystem defaultSystem{device};
-    vtt::RenderSystem sphereSystem{device};
 
     vtt::Camera camera{};
     vtt::CameraMovementController cameraController{};
 
-    //imgui stuff
-    float time = 0, scale = 1, speed = 0, p_scale = 0.125f;
+    float scale = 1, speed = 0, sphereSpeed = 0, damping = 0.05f; // sphereRadius = 0.641f;
     int rotAxis = 0;
     bool resetPos = false;
 
     void onCreate() override {
         camera.setViewTarget({0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f }, {0.0f, 1.0f, 0.0f});
         camera.m_rotation = {0, glm::radians(180.0f), glm::radians(180.0f)};
+
+        vikingRoom.translate({-2.0f, -1.2f, -0.5f});
         vikingRoom.rotateAxis(2, glm::radians(-90.0f));
         vikingRoom.rotateAxis(1, glm::radians(-90.0f));
-        axis.translate({1.577, -1.116, -0.692});
-        sphere.translate({0.0f, -0.2f, 0.0f});
-        axis.setScale(p_scale);
-        p_scale = 0.01f;
 
+        axis.translate({3.0f, -1.2f, -1.8f});
+        axis.setScale(0.125f);
+
+        plane.translate({0.0f, -1.0f, 0.0f});
+
+        sphere.setScale(0.01f);
 
         createUniformBuffers();
 
@@ -101,20 +97,14 @@ private:
         }
 
         // Default render system
-        auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
-                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
-                .build();
         {
+            auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                    .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
+                    .build();
             defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
 
             defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
             defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
-        }
-
-        // Sphere render system
-        {
-            sphereSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
-            sphereSystem.createPipeline(renderer.renderPass(), sphereShaderPaths);
         }
     }
 
@@ -129,23 +119,35 @@ private:
 
     void mainLoop(float deltaTime) override {
 
-            cameraController.moveCamera(window.window(), deltaTime, camera);
-            updateUniformBuffer(renderer.currentFrame(), deltaTime);
+        cameraController.moveCamera(window.window(), deltaTime, camera);
+        updateSphere(deltaTime);
+        updateUniformBuffer(renderer.currentFrame(), deltaTime);
 
-            renderer.runFrame([&](VkCommandBuffer commandBuffer){
-                showImGui();
+        renderer.runFrame([&](VkCommandBuffer commandBuffer){
+            showImGui();
 
-                renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
-//                    roomSystem.bind(commandBuffer, &roomDescriptorSets[renderer.currentFrame()]);
-//                    vikingRoom.render(roomSystem, commandBuffer);
+            renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
+                roomSystem.bind(commandBuffer, &roomDescriptorSets[renderer.currentFrame()]);
+                vikingRoom.render(roomSystem, commandBuffer);
+                sphere.render(roomSystem, commandBuffer);
 
-                    defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
-                    axis.render(defaultSystem, commandBuffer);
-
-                    sphereSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
-                    sphere.render(sphereSystem, commandBuffer);
-                });
+                defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
+                axis.render(defaultSystem, commandBuffer);
+                plane.render(defaultSystem, commandBuffer);
             });
+        });
+
+    }
+
+    void updateSphere(float deltaTime){
+        float a = 5;
+        sphere.translate(deltaTime * sphereSpeed * glm::vec3(0.0f, 1.0f, 0.0f));
+        sphereSpeed -= a*deltaTime;
+        if (sphere.m_translation.y < plane.m_translation.y) {
+            sphere.m_translation.y = plane.m_translation.y;
+            sphereSpeed *= (damping - 1);
+        }
+
 
     }
 
@@ -157,14 +159,11 @@ private:
         }
         vikingRoom.setScale(scale);
         vikingRoom.rotateAxis(rotAxis, speed * deltaTime * glm::radians(90.0f));
-        sphere.setScale(p_scale);
 
         UniformBufferObject ubo{};
         camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 100.f);
         ubo.view = camera.getView();
         ubo.proj = camera.getProjection();
-        time += deltaTime*10;
-        ubo.time += time;
         uniformBuffers[frameIndex]->singleWrite(&ubo);
 
     }
@@ -202,10 +201,9 @@ private:
 
             if (ImGui::CollapsingHeader("Plane")) {
 
-                ImGui::SliderFloat("x", &sphere.m_translation.x, -2.0f, 2.0f);
-                ImGui::SliderFloat("y", &sphere.m_translation.y, -2.0f, 2.0f);
-                ImGui::SliderFloat("z", &sphere.m_translation.z, -2.0f, 2.0f);
-                ImGui::SliderFloat("p_scale", &p_scale, 0.01f, 4.0f);
+                ImGui::SliderFloat("x", &plane.m_translation.x, -2.0f, 2.0f);
+                ImGui::SliderFloat("y", &plane.m_translation.y, -4.0f, 0.0f);
+                ImGui::SliderFloat("z", &plane.m_translation.z, -2.0f, 2.0f);
 
 //            static auto color = glm::vec3(0.0f);
 //            ImGui::ColorEdit3("clear color", (float *) &color);
