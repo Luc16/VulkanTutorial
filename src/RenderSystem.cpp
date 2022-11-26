@@ -16,7 +16,7 @@ namespace vtt {
                                 0, 1, descriptorSet, 0, nullptr);
     }
 
-    void RenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize = 0) {
+    void RenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize) {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;

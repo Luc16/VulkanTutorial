@@ -97,113 +97,113 @@ build CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_widgets.cpp.o: CXX_COMP
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
   OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/external/imgui
 
-build CMakeFiles/VulkanTutorial.dir/SwapChain.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/SwapChain.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/SwapChain.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/SwapChain.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/SwapChain.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/SwapChain.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/utils.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/utils.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/utils.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/utils.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/utils.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/utils.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Buffer.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Buffer.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Buffer.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Buffer.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Buffer.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Buffer.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Device.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Device.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Device.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Device.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Device.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Device.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Window.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Window.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Window.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Window.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Window.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Window.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Image.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Image.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Image.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Image.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Image.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Image.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Model.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Model.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Model.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Model.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Model.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Model.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Texture.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Texture.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Texture.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Texture.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Texture.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Texture.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Pipeline.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Pipeline.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Pipeline.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Pipeline.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Renderer.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Renderer.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Renderer.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Renderer.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Renderer.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Renderer.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorSetLayout.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/descriptors/DescriptorSetLayout.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorSetLayout.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorSetLayout.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/descriptors/DescriptorSetLayout.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorSetLayout.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/descriptors
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src/descriptors
 
-build CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorPool.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/descriptors/DescriptorPool.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorPool.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorPool.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/descriptors/DescriptorPool.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorPool.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/descriptors
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src/descriptors
 
-build CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorWriter.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/descriptors/DescriptorWriter.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorWriter.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorWriter.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/descriptors/DescriptorWriter.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorWriter.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/descriptors
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src/descriptors
 
-build CMakeFiles/VulkanTutorial.dir/CameraMovementController.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/CameraMovementController.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/CameraMovementController.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/CameraMovementController.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/CameraMovementController.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/CameraMovementController.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/Camera.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/Camera.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/Camera.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/Camera.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/Camera.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/Camera.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/DrawableObject.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/DrawableObject.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/DrawableObject.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/DrawableObject.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/DrawableObject.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/DrawableObject.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/RenderSystem.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/RenderSystem.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/RenderSystem.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/RenderSystem.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/RenderSystem.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/RenderSystem.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
-build CMakeFiles/VulkanTutorial.dir/VulkanApp.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/VulkanApp.cpp || cmake_object_order_depends_target_VulkanTutorial
-  DEP_FILE = CMakeFiles/VulkanTutorial.dir/VulkanApp.cpp.o.d
+build CMakeFiles/VulkanTutorial.dir/src/VulkanApp.cpp.o: CXX_COMPILER__VulkanTutorial_Release /home/luc/CLionProjects/VulkanTutorial/src/VulkanApp.cpp || cmake_object_order_depends_target_VulkanTutorial
+  DEP_FILE = CMakeFiles/VulkanTutorial.dir/src/VulkanApp.cpp.o.d
   FLAGS = -O3 -DNDEBUG
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir
-  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir
+  OBJECT_FILE_DIR = CMakeFiles/VulkanTutorial.dir/src
 
 
 # =============================================================================
@@ -213,7 +213,7 @@ build CMakeFiles/VulkanTutorial.dir/VulkanApp.cpp.o: CXX_COMPILER__VulkanTutoria
 #############################################
 # Link the executable VulkanTutorial
 
-build VulkanTutorial: CXX_EXECUTABLE_LINKER__VulkanTutorial_Release CMakeFiles/VulkanTutorial.dir/main.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_demo.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_draw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_glfw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_vulkan.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_tables.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_widgets.cpp.o CMakeFiles/VulkanTutorial.dir/SwapChain.cpp.o CMakeFiles/VulkanTutorial.dir/utils.cpp.o CMakeFiles/VulkanTutorial.dir/Buffer.cpp.o CMakeFiles/VulkanTutorial.dir/Device.cpp.o CMakeFiles/VulkanTutorial.dir/Window.cpp.o CMakeFiles/VulkanTutorial.dir/Image.cpp.o CMakeFiles/VulkanTutorial.dir/Model.cpp.o CMakeFiles/VulkanTutorial.dir/Texture.cpp.o CMakeFiles/VulkanTutorial.dir/Pipeline.cpp.o CMakeFiles/VulkanTutorial.dir/Renderer.cpp.o CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorSetLayout.cpp.o CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorPool.cpp.o CMakeFiles/VulkanTutorial.dir/descriptors/DescriptorWriter.cpp.o CMakeFiles/VulkanTutorial.dir/CameraMovementController.cpp.o CMakeFiles/VulkanTutorial.dir/Camera.cpp.o CMakeFiles/VulkanTutorial.dir/DrawableObject.cpp.o CMakeFiles/VulkanTutorial.dir/RenderSystem.cpp.o CMakeFiles/VulkanTutorial.dir/VulkanApp.cpp.o | /usr/lib/x86_64-linux-gnu/libglfw.so.3.3 /usr/lib/x86_64-linux-gnu/libvulkan.so
+build VulkanTutorial: CXX_EXECUTABLE_LINKER__VulkanTutorial_Release CMakeFiles/VulkanTutorial.dir/main.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_demo.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_draw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_glfw.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_impl_vulkan.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_tables.cpp.o CMakeFiles/VulkanTutorial.dir/external/imgui/imgui_widgets.cpp.o CMakeFiles/VulkanTutorial.dir/src/SwapChain.cpp.o CMakeFiles/VulkanTutorial.dir/src/utils.cpp.o CMakeFiles/VulkanTutorial.dir/src/Buffer.cpp.o CMakeFiles/VulkanTutorial.dir/src/Device.cpp.o CMakeFiles/VulkanTutorial.dir/src/Window.cpp.o CMakeFiles/VulkanTutorial.dir/src/Image.cpp.o CMakeFiles/VulkanTutorial.dir/src/Model.cpp.o CMakeFiles/VulkanTutorial.dir/src/Texture.cpp.o CMakeFiles/VulkanTutorial.dir/src/Pipeline.cpp.o CMakeFiles/VulkanTutorial.dir/src/Renderer.cpp.o CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorSetLayout.cpp.o CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorPool.cpp.o CMakeFiles/VulkanTutorial.dir/src/descriptors/DescriptorWriter.cpp.o CMakeFiles/VulkanTutorial.dir/src/CameraMovementController.cpp.o CMakeFiles/VulkanTutorial.dir/src/Camera.cpp.o CMakeFiles/VulkanTutorial.dir/src/DrawableObject.cpp.o CMakeFiles/VulkanTutorial.dir/src/RenderSystem.cpp.o CMakeFiles/VulkanTutorial.dir/src/VulkanApp.cpp.o | /usr/lib/x86_64-linux-gnu/libglfw.so.3.3 /usr/lib/x86_64-linux-gnu/libvulkan.so
   FLAGS = -O3 -DNDEBUG
   LINK_LIBRARIES = -lGL  /usr/lib/x86_64-linux-gnu/libglfw.so.3.3  /usr/lib/x86_64-linux-gnu/libvulkan.so
   OBJECT_DIR = CMakeFiles/VulkanTutorial.dir

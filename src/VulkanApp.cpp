@@ -7,7 +7,7 @@
 namespace vtt {
 
     VulkanApp::VulkanApp(int width, int height, const std::string &appName): window(width, height, appName), m_appName(appName) {
-        descriptorPool = vtt::DescriptorPool::Builder(device)
+        globalDescriptorPool = vtt::DescriptorPool::Builder(device)
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 })
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 })
@@ -23,45 +23,66 @@ namespace vtt {
                 .setMaxSetsTimesSizes(1000)
                 .build();
 
-        renderer.activateImGui(descriptorPool->descriptorPool());
+        renderer.activateImGui(globalDescriptorPool->descriptorPool());
 
     }
 
     void VulkanApp::run() {
-        {
-            onCreate();
+        onCreate();
 
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            float deltaTime, accTime = 0;
-            uint32_t frames = 0;
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime, accTime = 0;
+        uint32_t frames = 0;
 
-            while (!window.shouldClose()) {
-                auto newTime = std::chrono::high_resolution_clock::now();
-                deltaTime =
-                        std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-                currentTime = newTime;
-                accTime += deltaTime;
-                frames++;
+        while (!window.shouldClose()) {
+            auto newTime = std::chrono::high_resolution_clock::now();
+            deltaTime =
+                    std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            currentTime = newTime;
+            accTime += deltaTime;
+            frames++;
 
-                glfwPollEvents();
-                mainLoop(deltaTime);
+            glfwPollEvents();
+            mainLoop(deltaTime);
 
-                if (accTime > 0.5f) {
-                    double fps = double(frames) / accTime;
+            if (accTime > 0.5f) {
+                double fps = double(frames) / accTime;
 
-                    std::stringstream ss;
-                    ss << m_appName <<" " << "[" << fps << " FPS]";
+                std::stringstream ss;
+                ss << m_appName <<" " << "[" << fps << " FPS]";
 
-                    glfwSetWindowTitle(window.window(), ss.str().c_str());
+                glfwSetWindowTitle(window.window(), ss.str().c_str());
 
-                    frames = 0;
-                    accTime = 0.0f;
-                }
+                frames = 0;
+                accTime = 0.0f;
             }
-            vkDeviceWaitIdle(device.device());
-
-            onDestroy();
-
         }
+        vkDeviceWaitIdle(device.device());
+
+        onDestroy();
+
+    }
+
+    std::vector<VkDescriptorSet> VulkanApp::createDescriptorSets(vtt::DescriptorSetLayout& layout,
+                                                      std::vector<VkDescriptorBufferInfo> bufferInfos,
+                                                      std::vector<VkDescriptorImageInfo> imageInfos) {
+        std::vector<VkDescriptorSet> descriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+        for (auto & descriptorSet : descriptorSets) {
+
+            auto writer = vtt::DescriptorWriter(layout, *globalDescriptorPool);
+
+            for (auto& bufferInfo : bufferInfos){
+                writer.writeBuffer(0, &bufferInfo);
+            }
+
+            for (auto& imageInfo : imageInfos){
+                writer.writeImage(1, &imageInfo);
+            }
+
+            writer.build(descriptorSet);
+        }
+
+        return descriptorSets;
     }
 }

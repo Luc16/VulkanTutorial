@@ -19,14 +19,14 @@ layout(push_constant) uniform Push {
 const float AMBIENT = 0.05;
 
 layout(location = 0) out vec2 fragTexCoord;
-layout(location = 1) out float fragLightIntensity;
+layout(location = 1) out vec3 fragPosWorld;
+layout(location = 2) out vec3 fragNormalWorld;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * push.model * vec4(inPosition, 1.0);
-
-    vec3 worldNormal = normalize(mat3(push.model) * inNormal);
-
-    fragLightIntensity = AMBIENT + max(dot(worldNormal, ubo.lightDirection), 0);
+    vec4 posWorld = push.model * vec4(inPosition, 1.0);
+    gl_Position = ubo.proj * ubo.view * posWorld;
+    fragPosWorld = posWorld.xyz;
+    fragNormalWorld = normalize(mat3(push.model) * inNormal);
 
     fragTexCoord = inTexCoord;
 }

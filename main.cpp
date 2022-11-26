@@ -12,24 +12,18 @@
 #include "src/utils.h"
 #include "src/Texture.h"
 #include "src/descriptors/DescriptorSetLayout.h"
-#include "src/descriptors/DescriptorWriter.h"
 #include "src/Camera.h"
 #include "src/CameraMovementController.h"
 #include "src/RenderSystem.h"
 #include "src/DrawableObject.h"
 #include "src/VulkanApp.h"
 
+#define INSTANCE_COUNT 1
 const uint32_t WIDTH = 1000;
 const uint32_t HEIGHT = 700;
 const std::string APP_NAME = "Vulkan";
 
-struct UniformBufferObject {
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-    alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f));
-};
-
-
+// TODO instancing using second vertex buffer
 class TestApp: public vtt::VulkanApp {
 public:
     TestApp(int width, int height, const std::string &appName): VulkanApp(width, height, appName) {}
@@ -37,37 +31,92 @@ public:
 private:
     const std::string modelPath = "../models/viking_room.obj";
     const std::string texturePath = "../textures/viking_room.png";
-    vtt::RenderSystem::ShaderPaths vikingShaderPaths = vtt::RenderSystem::ShaderPaths {
+    const vtt::RenderSystem::ShaderPaths vikingShaderPaths = vtt::RenderSystem::ShaderPaths {
         "../shaders/viking_room.vert.spv",
         "../shaders/viking_room.frag.spv"
     };
 
     const std::string axisModelPath = "../models/axis.obj";
-    vtt::RenderSystem::ShaderPaths shaderPaths = vtt::RenderSystem::ShaderPaths {
-            "../shaders/default.vert.spv",
-            "../shaders/default.frag.spv"
+    const std::string planeModelPath = "../models/quad.obj";
+    const vtt::RenderSystem::ShaderPaths shaderPaths = vtt::RenderSystem::ShaderPaths {
+        "../shaders/default.vert.spv",
+        "../shaders/default.frag.spv"
+    };
+
+    const std::string sphereModelPath = "../models/sphere.obj";
+    const vtt::RenderSystem::ShaderPaths instanceShaderPaths = vtt::RenderSystem::ShaderPaths {
+            "../shaders/instancing.vert.spv",
+            "../shaders/instancing.frag.spv"
+    };
+
+    struct UniformBufferObject {
+        alignas(16) glm::mat4 view;
+        alignas(16) glm::mat4 proj;
+        alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f));
+    };
+
+    struct InstanceData {
+        glm::vec3 position;
+        float scale;
     };
 
     vtt::DrawableObject vikingRoom{vtt::Model::createModelFromFile(device, modelPath), std::make_shared<vtt::Texture>(device, texturePath)};
     vtt::DrawableObject axis{vtt::Model::createModelFromFile(device, axisModelPath)};
-    vtt::DrawableObject sphere{vtt::Model::createModelFromFile(device, "../models/sphere.obj")};
-    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, "../models/quad.obj")};
+    vtt::DrawableObject sphere{vtt::Model::createModelFromFile(device, sphereModelPath)};
+    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, planeModelPath)};
 
     std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
-    std::vector<VkDescriptorSet> roomDescriptorSets;
-    std::vector<VkDescriptorSet> defaultDescriptorSets;
 
     vtt::RenderSystem roomSystem{device};
+    std::vector<VkDescriptorSet> roomDescriptorSets;
     vtt::RenderSystem defaultSystem{device};
+    std::vector<VkDescriptorSet> defaultDescriptorSets;
+    vtt::RenderSystem instanceSystem{device};
 
     vtt::Camera camera{};
     vtt::CameraMovementController cameraController{};
+
+    std::vector<InstanceData> instancesData{INSTANCE_COUNT};
+    std::unique_ptr<vtt::Buffer> instanceBuffer{};
 
     float scale = 1, speed = 0, sphereSpeed = 0, damping = 0.05f; // sphereRadius = 0.641f;
     int rotAxis = 0;
     bool resetPos = false;
 
     void onCreate() override {
+        initializeObjects();
+
+        createUniformBuffers();
+
+        // Room render system
+        {
+            auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                    .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, nullptr})
+                    .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                 VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}).build();
+            roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
+                                                      {uniformBuffers[0]->descriptorInfo()},{vikingRoom.textureInfo()});
+            roomSystem.createPipelineLayout(roomDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
+            roomSystem.createPipeline(renderer.renderPass(), vikingShaderPaths);
+        }
+
+        // Default render system
+        auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+                .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, nullptr})
+                .build();
+        defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
+        {
+            defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
+            defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
+        }
+
+        {
+            instanceSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), 0);
+            instanceSystem.createPipeline(renderer.renderPass(), instanceShaderPaths);
+        }
+    }
+
+    void initializeObjects() {
         camera.setViewTarget({0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f }, {0.0f, 1.0f, 0.0f});
         camera.m_rotation = {0, glm::radians(180.0f), glm::radians(180.0f)};
 
@@ -81,30 +130,12 @@ private:
         plane.translate({0.0f, -1.0f, 0.0f});
 
         sphere.setScale(0.01f);
+    }
 
-        createUniformBuffers();
-
-        // Room render system
-        {
-            auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
-                    .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
-                    .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                 VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}).build();
-            roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
-                                                      {uniformBuffers[0]->descriptorInfo()},{vikingRoom.textureInfo()});
-            roomSystem.createPipelineLayout(roomDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
-            roomSystem.createPipeline(renderer.renderPass(), vikingShaderPaths);
-        }
-
-        // Default render system
-        {
-            auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
-                    .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr})
-                    .build();
-            defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
-
-            defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
-            defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
+    void createInstances() {
+        for (auto& instance: instancesData) {
+            instance.position = glm::vec3(0.0f, 0.0f, 0.0f);
+            instance.scale = 0.01f;
         }
     }
 
@@ -128,8 +159,8 @@ private:
 
             renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
                 roomSystem.bind(commandBuffer, &roomDescriptorSets[renderer.currentFrame()]);
-                vikingRoom.render(roomSystem, commandBuffer);
                 sphere.render(roomSystem, commandBuffer);
+                vikingRoom.render(roomSystem, commandBuffer);
 
                 defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
                 axis.render(defaultSystem, commandBuffer);
@@ -147,7 +178,6 @@ private:
             sphere.m_translation.y = plane.m_translation.y;
             sphereSpeed *= (damping - 1);
         }
-
 
     }
 
@@ -227,35 +257,9 @@ private:
 
     }
 
-    std::vector<VkDescriptorSet> createDescriptorSets(vtt::DescriptorSetLayout& layout,
-                                                      std::vector<VkDescriptorBufferInfo> bufferInfos,
-                                                      std::vector<VkDescriptorImageInfo> imageInfos = {}) {
-        std::vector<VkDescriptorSet> descriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-
-        for (auto & descriptorSet : descriptorSets) {
-
-            auto writer = vtt::DescriptorWriter(layout, *descriptorPool);
-
-            for (auto& bufferInfo : bufferInfos){
-                writer.writeBuffer(0, &bufferInfo);
-            }
-
-            for (auto& imageInfo : imageInfos){
-                writer.writeImage(1, &imageInfo);
-            }
-
-            writer.build(descriptorSet);
-        }
-
-        return descriptorSets;
-    }
-
 };
 
 int main() {
-
-//    system("glslc ../shaders/shader.vert -o ../shaders/vert.spv");
-//    system("glslc ../shaders/shader.frag -o ../shaders/frag.spv");
     TestApp app{WIDTH, HEIGHT, APP_NAME};
 
     try {

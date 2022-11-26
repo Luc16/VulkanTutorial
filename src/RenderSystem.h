@@ -28,7 +28,7 @@ namespace vtt {
         [[nodiscard]] VkPipelineLayout pipelineLayout() { return m_pipelineLayout; }
         void bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSet);
 
-        void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize);
+        void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize = 0);
         void createPipeline(VkRenderPass renderPass, const ShaderPaths& shaderPaths, const std::function<void(Pipeline::PipelineConfigInfo&)>& configurePipeline = {});
     private:
 

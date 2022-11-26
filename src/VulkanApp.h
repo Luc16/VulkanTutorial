@@ -38,16 +38,20 @@ namespace vtt{
         std::string m_appName;
 
     protected:
+        std::vector<VkDescriptorSet> createDescriptorSets(DescriptorSetLayout &layout,
+                                                          std::vector<VkDescriptorBufferInfo> bufferInfos,
+                                                          std::vector<VkDescriptorImageInfo> imageInfos = {});
+
         virtual void mainLoop(float deltaTime) = 0;
         virtual void onCreate() = 0;
         virtual void onDestroy() {};
 
         vtt::Window window;
         vtt::Device device{window};
-        std::unique_ptr<vtt::DescriptorPool> descriptorPool;
+
+        std::unique_ptr<vtt::DescriptorPool> globalDescriptorPool;
 
         vtt::Renderer renderer{window, device};
-
     };
 }
 
