@@ -29,7 +29,7 @@ namespace vtt {
         void translate(glm::vec3 move) { m_translation += move; }
         void rotateAxis(int axis, float angle) { m_rotation[axis] += angle;}
         void resetRotation(int axis) {m_rotation[axis] = 0; }
-        void render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer);
+        virtual void render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer);
 
         [[nodiscard]] glm::mat4 modelMatrix() const;
         [[nodiscard]] VkDescriptorImageInfo textureInfo() const { return m_texture->descriptorInfo();}
@@ -38,8 +38,9 @@ namespace vtt {
         glm::vec3 m_scale{1.f, 1.f, 1.f};
         glm::vec3 m_rotation{};
 
-        std::shared_ptr<vtt::Model> m_model;
         std::shared_ptr<vtt::Texture> m_texture;
+    protected:
+        std::shared_ptr<vtt::Model> m_model;
     };
 }
 

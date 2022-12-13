@@ -27,17 +27,36 @@
 
 
 #include <functional>
+#include <random>
 
-namespace lve {
 
 // from: https://stackoverflow.com/a/57595105
-    template <typename T, typename... Rest>
-    void hashCombine(std::size_t& seed, const T& v, const Rest&... rest) {
-        seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        (hashCombine(seed, rest), ...);
-    };
+template <typename T, typename... Rest>
+void hashCombine(std::size_t& seed, const T& v, const Rest&... rest) {
+    seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    (hashCombine(seed, rest), ...);
+};
 
-}  // namespace lve
+
+
+
+inline double randomDouble(){
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<double> dis_double;
+    return dis_double(gen);
+}
+
+inline double randomDouble(double min, double max) {
+    return min + randomDouble() * (max - min);
+}
+
+inline int randomInt(int min, int max) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<int> dis_int(min, max);
+    return dis_int(gen);
+}
 
 
 #endif //VULKANTUTORIAL_UTILS_H

@@ -7,15 +7,17 @@
 namespace vtt {
 
     void DrawableObject::render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer) {
-        PushConstantData push{};
-        push.modelMatrix = modelMatrix();
-        vkCmdPushConstants(
-                commandBuffer,
-                renderSystem.pipelineLayout(),
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                0,
-                sizeof(PushConstantData),
-                &push);
+        if (renderSystem.pushConstantSize() > 0){
+            PushConstantData push{};
+            push.modelMatrix = modelMatrix();
+            vkCmdPushConstants(
+                    commandBuffer,
+                    renderSystem.pipelineLayout(),
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(PushConstantData),
+                    &push);
+        }
         m_model->bind(commandBuffer);
         m_model->draw(commandBuffer);
     }

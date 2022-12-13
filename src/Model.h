@@ -37,7 +37,7 @@ namespace vtt {
         static std::unique_ptr<Model> createModelFromFile(Device &device, const std::string &filepath);
 
         void bind(VkCommandBuffer commandBuffer);
-        void draw(VkCommandBuffer commandBuffer) const;
+        void draw(VkCommandBuffer commandBuffer, size_t numInstances = 1) const;
     private:
         void createVertexBuffer(std::vector<Vertex>& vertices);
         void createIndexBuffer(std::vector<uint32_t>& indices);

@@ -12,7 +12,7 @@ namespace std {
     struct hash<vtt::Model::Vertex> {
         size_t operator()(vtt::Model::Vertex const &vertex) const {
             size_t seed = 0;
-            lve::hashCombine(seed, vertex.pos, vertex.color, vertex.normal, vertex.texCoord);
+            hashCombine(seed, vertex.pos, vertex.color, vertex.normal, vertex.texCoord);
             return seed;
         }
     };
@@ -120,11 +120,11 @@ namespace vtt {
             vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
     }
 
-    void Model::draw(VkCommandBuffer commandBuffer) const {
+    void Model::draw(VkCommandBuffer commandBuffer, size_t numInstances) const {
         if (m_hasIndexBuffer)
-            vkCmdDrawIndexed(commandBuffer, m_indexCount, 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, m_indexCount, numInstances, 0, 0, 0);
         else
-            vkCmdDraw(commandBuffer, m_vertexCount, 0, 0, 0);
+            vkCmdDraw(commandBuffer, m_vertexCount, numInstances, 0, 0);
     }
 
     VkVertexInputBindingDescription Model::Vertex::getBindingDescription() {

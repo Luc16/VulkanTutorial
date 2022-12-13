@@ -1,0 +1,4 @@
+/snap/clion/218/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=/snap/clion/218/bin/ninja/linux/ninja -G Ninja -S /home/luc/CLionProjects/VulkanTutorial -B /home/luc/CLionProjects/VulkanTutorial/cmake-build-release
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/luc/CLionProjects/VulkanTutorial/cmake-build-release

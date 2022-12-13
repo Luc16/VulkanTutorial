@@ -44,14 +44,12 @@ namespace vtt {
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageInfo};
 
-        auto bindingDescription = vtt::Model::Vertex::getBindingDescription();
-        auto attributeDescription = vtt::Model::Vertex::getAttributeDescriptions();
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(configInfo.bindingDescription.size());
+        vertexInputInfo.pVertexBindingDescriptions = configInfo.bindingDescription.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(configInfo.attributeDescription.size());
+        vertexInputInfo.pVertexAttributeDescriptions = configInfo.attributeDescription.data();
 
         // inicializa o multisampling
         configInfo.multisampling.rasterizationSamples = m_deviceRef.msaaSamples();
@@ -185,6 +183,10 @@ namespace vtt {
         configInfo.dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         configInfo.dynamicState.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
         configInfo.dynamicState.pDynamicStates = configInfo.dynamicStateEnables.data();
+
+        configInfo.bindingDescription.push_back(vtt::Model::Vertex::getBindingDescription());
+        auto attributeDescription = vtt::Model::Vertex::getAttributeDescriptions();
+        configInfo.attributeDescription.insert(configInfo.attributeDescription.end(), attributeDescription.begin(), attributeDescription.end());
 
         return configInfo;
     }

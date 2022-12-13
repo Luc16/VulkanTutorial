@@ -26,6 +26,7 @@ namespace vtt {
         RenderSystem &operator=(const RenderSystem &) = delete;
 
         [[nodiscard]] VkPipelineLayout pipelineLayout() { return m_pipelineLayout; }
+        [[nodiscard]] uint32_t pushConstantSize() const { return m_pushConstantSize; }
         void bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSet);
 
         void createPipelineLayout(VkDescriptorSetLayout globalSetLayout, uint32_t pushConstantSize = 0);
@@ -38,6 +39,7 @@ namespace vtt {
         VkPipelineLayout m_pipelineLayout{};
 
         bool m_layoutCreated = false;
+        uint32_t m_pushConstantSize;
     };
 }
 
