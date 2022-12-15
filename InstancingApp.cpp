@@ -51,7 +51,7 @@ void InstancingApp::createInstances() {
                 0.2f + randomDouble(0.0f, 0.8f),
                 0.2f + randomDouble(0.0f, 0.8f)
                 );
-        sphere.scale = 0.01f;
+        sphere.scale = 8.0f;
         sphere.position = accPos + glm::vec3(0.0f, randomDouble(1.0f, 3.0f), 0.0f);
         accPos.x += 1.5f;
 
@@ -61,6 +61,7 @@ void InstancingApp::createInstances() {
             accPos.x = 0.0f;
         }
     }
+    instancedSpheres.updateBuffer();
 }
 
 void InstancingApp::createUniformBuffers() {
@@ -75,12 +76,12 @@ void InstancingApp::createUniformBuffers() {
 void InstancingApp::mainLoop(float deltaTime) {
 
     cameraController.moveCamera(window.window(), deltaTime, camera);
-    updateSpheres(deltaTime);
     updateUniformBuffer(renderer.currentFrame(), deltaTime);
+
+    updateSpheres(deltaTime);
     instancedSpheres.updateBuffer();
 
     renderer.runFrame([&](VkCommandBuffer commandBuffer){
-
         showImGui();
 
         renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
@@ -91,7 +92,11 @@ void InstancingApp::mainLoop(float deltaTime) {
             instanceSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
             instancedSpheres.render(instanceSystem, commandBuffer);
         });
+
+
     });
+
+
 
 }
 
@@ -113,7 +118,7 @@ void InstancingApp::updateSpheres(float deltaTime){
 void InstancingApp::updateUniformBuffer(uint32_t frameIndex, float deltaTime){
 
     UniformBufferObject ubo{};
-    camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 100.f);
+    camera.setPerspectiveProjection(glm::radians(50.f), renderer.getSwapChainAspectRatio(), 0.1f, 1000.f);
     ubo.view = camera.getView();
     ubo.proj = camera.getProjection();
     uniformBuffers[frameIndex]->singleWrite(&ubo);

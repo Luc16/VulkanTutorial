@@ -21,8 +21,7 @@
 #include "src/VulkanApp.h"
 #include "src/InstancedObjects.h"
 
-#define INSTANCE_COUNT 1024
-
+#define INSTANCE_COUNT 8192
 
 class InstancingApp: public vtt::VulkanApp {
 public:
@@ -35,7 +34,7 @@ private:
             "../shaders/default.frag.spv"
     };
 
-    const std::string sphereModelPath = "../models/sphere.obj";
+    const std::string sphereModelPath = "../models/asteroid.obj";
     const vtt::RenderSystem::ShaderPaths instanceShaderPaths = vtt::RenderSystem::ShaderPaths {
             "../shaders/instancing.vert.spv",
             "../shaders/instancing.frag.spv"
@@ -66,8 +65,8 @@ private:
 
     vtt::InstancedObjects<InstanceData> instancedSpheres{device, INSTANCE_COUNT, vtt::Model::createModelFromFile(device, sphereModelPath)};
 
-    float scale = 1, speed = 0, damping = 0.05f, sphereRadius = 0.641f;
-    float sphereSpeeds[INSTANCE_COUNT];
+    float speed = 0, damping = 0.05f, sphereRadius = 0.641f;
+    float sphereSpeeds[INSTANCE_COUNT]{};
 
     void onCreate() override;
     void initializeObjects();

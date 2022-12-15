@@ -31,7 +31,7 @@ namespace vtt {
                                                      std::shared_ptr<vtt::Model> model,
                                                      std::shared_ptr<vtt::Texture> texture):
             DrawableObject(model, texture), std::vector<InstanceData>(initialSize) {
-        createInstanceBuffer(device);
+                createInstanceBuffer(device);
     }
 
     template<typename InstanceData>
@@ -64,7 +64,7 @@ namespace vtt {
 
     template<typename InstanceData>
     void InstancedObjects<InstanceData>::createInstanceBuffer(const Device &device) {
-        VkDeviceSize bufferSize = sizeof(this[0]) * this->size();
+        VkDeviceSize bufferSize = sizeof(InstanceData) * this->size();
 
         vtt::Buffer stagingBuffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -76,6 +76,7 @@ namespace vtt {
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         device.copyBuffer(stagingBuffer.getBuffer(), m_instanceBuffer->getBuffer(), bufferSize);
+
     }
 
     template<typename InstanceData>

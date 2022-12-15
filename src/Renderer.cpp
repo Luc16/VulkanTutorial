@@ -89,7 +89,6 @@ namespace vtt {
 
         function(commandBuffer);
 
-
         if (m_imGuiActivated) {
             ImGui::Render();
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
