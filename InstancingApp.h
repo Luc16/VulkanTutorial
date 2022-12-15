@@ -21,7 +21,7 @@
 #include "src/VulkanApp.h"
 #include "src/InstancedObjects.h"
 
-#define INSTANCE_COUNT 8192
+#define INSTANCE_COUNT 8192*4
 
 class InstancingApp: public vtt::VulkanApp {
 public:
@@ -34,7 +34,7 @@ private:
             "../shaders/default.frag.spv"
     };
 
-    const std::string sphereModelPath = "../models/asteroid.obj";
+    const std::string sphereModelPath = "../models/lowsphere.obj";
     const vtt::RenderSystem::ShaderPaths instanceShaderPaths = vtt::RenderSystem::ShaderPaths {
             "../shaders/instancing.vert.spv",
             "../shaders/instancing.frag.spv"

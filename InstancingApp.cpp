@@ -51,7 +51,7 @@ void InstancingApp::createInstances() {
                 0.2f + randomDouble(0.0f, 0.8f),
                 0.2f + randomDouble(0.0f, 0.8f)
                 );
-        sphere.scale = 8.0f;
+        sphere.scale = 1.0f;
         sphere.position = accPos + glm::vec3(0.0f, randomDouble(1.0f, 3.0f), 0.0f);
         accPos.x += 1.5f;
 
