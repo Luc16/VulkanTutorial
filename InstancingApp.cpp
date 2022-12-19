@@ -3,6 +3,7 @@
 //
 
 #include "InstancingApp.h"
+#include <execution>
 
 void InstancingApp::onCreate() {
     initializeObjects();
@@ -33,29 +34,37 @@ void InstancingApp::initializeObjects() {
     camera.setViewTarget({0.0f, 10.0f, 10.0f}, {12.0f, -1.0f, -12.0f }, {0.0f, 1.0f, 0.0f});
     camera.m_rotation = {0, glm::radians(180.0f), glm::radians(180.0f)};
 
-    auto spherePerLine = sqrt(INSTANCE_COUNT);
-
-    plane.translate({1.5*spherePerLine/2, -1.0f, -1.5*spherePerLine/2});
-    plane.setScale(spherePerLine);
-
     createInstances();
 }
 
 void InstancingApp::createInstances() {
+    vkDeviceWaitIdle(device.device());
+
+    instancedSpheres.resize(device, INSTANCE_COUNT);
+    sphereSpeeds.resize(INSTANCE_COUNT);
+    iter.resize(INSTANCE_COUNT);
+
+    auto planeScale = sqrtf((float) INSTANCE_COUNT);
+    plane.m_translation = {1.5*planeScale/2, -1.0f, -1.5*planeScale/2};
+    plane.setScale(planeScale);
+
     auto accPos = glm::vec3(0.0f, 0.0f, 0.0f);
-    auto spherePerLine = (int) sqrt(INSTANCE_COUNT);
-    for (size_t i = 0; i < instancedSpheres.size(); i++) {
+    auto spherePerLine = (int) planeScale;
+
+    for (uint32_t i = 0; i < instancedSpheres.size(); i++) {
         auto& sphere = instancedSpheres[i];
         sphere.color = glm::vec3(
                 0.2f + randomDouble(0.0f, 0.8f),
                 0.2f + randomDouble(0.0f, 0.8f),
                 0.2f + randomDouble(0.0f, 0.8f)
                 );
+        if (i == instancedSpheres.size() - 1) sphere.color = {1, 0, 0};
         sphere.scale = 1.0f;
         sphere.position = accPos + glm::vec3(0.0f, randomDouble(1.0f, 3.0f), 0.0f);
         accPos.x += 1.5f;
 
         sphereSpeeds[i] = 0.0f;
+        iter[i] = i;
         if (i % spherePerLine == spherePerLine - 1) {
             accPos.z -= 1.5f;
             accPos.x = 0.0f;
@@ -74,17 +83,23 @@ void InstancingApp::createUniformBuffers() {
 }
 
 void InstancingApp::mainLoop(float deltaTime) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
 
     cameraController.moveCamera(window.window(), deltaTime, camera);
     updateUniformBuffer(renderer.currentFrame(), deltaTime);
 
     updateSpheres(deltaTime);
     instancedSpheres.updateBuffer();
+    if (activateTimer) {
+        auto time = std::chrono::high_resolution_clock::now();
+        cpuTime = std::chrono::duration<float, std::chrono::milliseconds::period>(time - currentTime).count();
+        currentTime = time;
+    }
 
-    renderer.runFrame([&](VkCommandBuffer commandBuffer){
+    renderer.runFrame([this](VkCommandBuffer commandBuffer){
         showImGui();
 
-        renderer.runRenderPass([&](VkCommandBuffer& commandBuffer){
+        renderer.runRenderPass([this](VkCommandBuffer& commandBuffer){
 
             defaultSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
             plane.render(defaultSystem, commandBuffer);
@@ -92,12 +107,8 @@ void InstancingApp::mainLoop(float deltaTime) {
             instanceSystem.bind(commandBuffer, &defaultDescriptorSets[renderer.currentFrame()]);
             instancedSpheres.render(instanceSystem, commandBuffer);
         });
-
-
     });
-
-
-
+    if (activateTimer) gpuTime = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::high_resolution_clock::now() - currentTime).count();
 }
 
 void InstancingApp::updateSpheres(float deltaTime){
@@ -132,7 +143,23 @@ void InstancingApp::showImGui(){
 
         ImGui::Begin("Control Panel");
 
-        if (ImGui::CollapsingHeader("Plane")) {
+        ImGui::Text("Rendering %d instances", INSTANCE_COUNT);
+        ImGui::Checkbox("Display time", &activateTimer);
+        if(activateTimer){
+            ImGui::Text("Gpu time: %f ms", gpuTime);
+            ImGui::Text("Cpu time: %f ms", cpuTime);
+        }
+
+        if (ImGui::Button("Double instance count")){
+            INSTANCE_COUNT *= 2;
+            createInstances();
+        }
+        if (ImGui::Button("Half instance count")){
+            INSTANCE_COUNT /= 2;
+            createInstances();
+        }
+
+        if (ImGui::CollapsingHeader("Plane", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             ImGui::SliderFloat("y", &plane.m_translation.y, -4.0f, 0.0f);
             if (ImGui::Button("Reset")) createInstances();
