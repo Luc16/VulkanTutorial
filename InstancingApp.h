@@ -23,7 +23,8 @@
 
 class InstancingApp: public vtt::VulkanApp {
 public:
-    InstancingApp(int width, int height, const std::string &appName): VulkanApp(width, height, appName) {}
+    InstancingApp(int width, int height, const std::string &appName, vtt::Device::PhysicalDeviceType type = vtt::Device::INTEL):
+    VulkanApp(width, height, appName, type) {}
 
 private:
     uint32_t INSTANCE_COUNT = 65536;

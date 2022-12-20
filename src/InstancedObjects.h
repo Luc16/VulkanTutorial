@@ -16,7 +16,7 @@ namespace vtt {
 
         void render(vtt::RenderSystem &renderSystem, VkCommandBuffer commandBuffer) override;
         void updateBuffer();
-        void resize(const Device &device, size_t new_size);
+        void resizeBuffer(size_t new_size);
 
         VkVertexInputBindingDescription getBindingDescription();
 
@@ -25,16 +25,16 @@ namespace vtt {
         using std::vector<InstanceData>::resize;
 
     private:
-        void createInstanceBuffer(const Device &device);
+        void createInstanceBuffer();
 
         std::unique_ptr<vtt::Buffer> m_instanceBuffer;
         const Device& m_deviceRef;
     };
 
     template<typename InstanceData>
-    void InstancedObjects<InstanceData>::resize(const Device &device, size_t new_size) {
+    void InstancedObjects<InstanceData>::resizeBuffer(size_t new_size) {
         this->resize(new_size);
-        createInstanceBuffer(device);
+        createInstanceBuffer();
     }
 
 
@@ -43,12 +43,17 @@ namespace vtt {
                                                      std::shared_ptr<vtt::Model> model,
                                                      std::shared_ptr<vtt::Texture> texture):
             m_deviceRef(device), DrawableObject(model, texture), std::vector<InstanceData>(initialSize) {
-                createInstanceBuffer(device);
+                createInstanceBuffer();
     }
 
     template<typename InstanceData>
     void InstancedObjects<InstanceData>::updateBuffer() {
-        m_instanceBuffer->singleWrite(this->data());
+
+        vtt::Buffer stagingBuffer(m_deviceRef, m_instanceBuffer->getSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        stagingBuffer.singleWrite(this->data());
+
+        m_deviceRef.copyBuffer(stagingBuffer.getBuffer(), m_instanceBuffer->getBuffer(), m_instanceBuffer->getSize());
     }
 
     template<typename InstanceData>
@@ -75,20 +80,19 @@ namespace vtt {
     }
 
     template<typename InstanceData>
-    void InstancedObjects<InstanceData>::createInstanceBuffer(const Device &device) {
+    void InstancedObjects<InstanceData>::createInstanceBuffer() {
         VkDeviceSize bufferSize = sizeof(InstanceData) * this->size();
 
-        vtt::Buffer stagingBuffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        vtt::Buffer stagingBuffer(m_deviceRef, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         stagingBuffer.singleWrite(this->data());
 
-        m_instanceBuffer = std::make_unique<vtt::Buffer>(device, bufferSize,
+        m_instanceBuffer = std::make_unique<vtt::Buffer>(m_deviceRef, bufferSize,
                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                                                          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        device.copyBuffer(stagingBuffer.getBuffer(), m_instanceBuffer->getBuffer(), bufferSize);
-
+        m_deviceRef.copyBuffer(stagingBuffer.getBuffer(), m_instanceBuffer->getBuffer(), bufferSize);
     }
 
     template<typename InstanceData>

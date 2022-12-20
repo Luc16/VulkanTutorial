@@ -27,7 +27,7 @@
 namespace vtt{
     class VulkanApp {
     public:
-        VulkanApp(int width, int height, const std::string &appName);
+        VulkanApp(int width, int height, const std::string &appName, Device::PhysicalDeviceType type = Device::INTEL);
         VulkanApp(const VulkanApp &) = delete;
         VulkanApp &operator=(const VulkanApp &) = delete;
         ~VulkanApp() = default;
@@ -47,11 +47,11 @@ namespace vtt{
         virtual void onDestroy() {};
 
         vtt::Window window;
-        vtt::Device device{window};
+        vtt::Device device;
 
         std::unique_ptr<vtt::DescriptorPool> globalDescriptorPool;
 
-        vtt::Renderer renderer{window, device};
+        vtt::Renderer renderer;
     };
 }
 

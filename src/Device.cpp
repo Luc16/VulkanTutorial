@@ -34,7 +34,7 @@ namespace vtt {
         }
     }
 
-    Device::Device(const Window& window): m_windowRef(window) {
+    Device::Device(const Window& window, PhysicalDeviceType type): m_windowRef(window), m_deviceType(type) {
         createInstance();
         setupDebugMessenger();
         createSurface();
@@ -124,9 +124,10 @@ namespace vtt {
         for (const auto& pDevice : devices){
             VkPhysicalDeviceProperties properties;
             vkGetPhysicalDeviceProperties(pDevice, &properties);
-            std::cout << properties.deviceName << std::endl;
+            std::cout << '\t' << properties.deviceName << " ID: " << properties.deviceID << '\n';
 
-            if (isDeviceSuitable(pDevice) && !deviceChosen) {
+
+            if (isDeviceSuitable(pDevice) && !deviceChosen && properties.deviceID == m_deviceType) {
                 deviceChosen = true;
                 m_physicalDevice = pDevice;
                 m_msaaSamples = getMaxUsableSampleCount();
@@ -139,7 +140,7 @@ namespace vtt {
 
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
-        std::cout << "Using physical device: " << properties.deviceName << std::endl;
+        std::cout << "\nUsing physical device: " << properties.deviceName << '\n';
     }
 
     void Device::createSurface(){

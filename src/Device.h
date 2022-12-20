@@ -21,6 +21,11 @@ namespace vtt{
 #endif
         static constexpr VkSampleCountFlagBits MAX_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
+        enum PhysicalDeviceType {
+            NVIDIA = 8089,
+            INTEL = 39876
+        };
+
         struct QueueFamilyIndices {
             std::optional<uint32_t> graphicsFamily{};
             std::optional<uint32_t> presentFamily{};
@@ -37,7 +42,7 @@ namespace vtt{
             std::vector<VkPresentModeKHR> presentModes;
         };
 
-        explicit Device(const Window& window);
+        explicit Device(const Window& window, PhysicalDeviceType type = INTEL);
         Device(const Device &) = delete;
         Device &operator=(const Device &) = delete;
         Device(Device &&) = delete;
@@ -83,6 +88,7 @@ namespace vtt{
 
         const Window& m_windowRef;
 
+        PhysicalDeviceType m_deviceType;
         VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkInstance m_instance{};
         VkDebugUtilsMessengerEXT m_debugMessenger{};

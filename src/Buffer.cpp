@@ -26,7 +26,10 @@ namespace vtt {
     void Buffer::map() {
         if (m_mapped != nullptr)
             throw std::runtime_error("Trying to map m_mapped m_buffer m_memory!");
-        vkMapMemory(m_deviceRef.device(), m_memory, 0, m_bufferSize, 0, &m_mapped);
+        auto res = vkMapMemory(m_deviceRef.device(), m_memory, 0, m_bufferSize, 0, &m_mapped);
+        if (res != VK_SUCCESS || m_mapped == nullptr)
+            throw std::runtime_error("Failed to map memory");
+
     }
 
     void Buffer::unmap() {

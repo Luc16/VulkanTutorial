@@ -40,7 +40,7 @@ void InstancingApp::initializeObjects() {
 void InstancingApp::createInstances() {
     vkDeviceWaitIdle(device.device());
 
-    instancedSpheres.resize(device, INSTANCE_COUNT);
+    instancedSpheres.resizeBuffer(INSTANCE_COUNT);
     sphereSpeeds.resize(INSTANCE_COUNT);
     iter.resize(INSTANCE_COUNT);
 

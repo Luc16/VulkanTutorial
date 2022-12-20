@@ -21,6 +21,7 @@ namespace vtt {
         ~Buffer();
 
         [[nodiscard]] VkBuffer getBuffer() const { return m_buffer; }
+        [[nodiscard]] VkDeviceSize getSize() const { return m_bufferSize; }
         [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
 
         void map();
