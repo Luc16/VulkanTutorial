@@ -5,7 +5,7 @@
 #include <string>
 #include "Window.h"
 
-namespace vtt {
+namespace vkb {
     Window::Window(int width, int height, const std::string& title): m_width(width), m_height(height) {
         glfwInit();
 

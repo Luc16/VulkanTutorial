@@ -4,9 +4,9 @@
 
 #include "DrawableObject.h"
 
-namespace vtt {
+namespace vkb {
 
-    void DrawableObject::render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer) {
+    void DrawableObject::render(vkb::RenderSystem& renderSystem, VkCommandBuffer commandBuffer) {
         if (renderSystem.pushConstantSize() > 0){
             PushConstantData push{};
             push.modelMatrix = modelMatrix();

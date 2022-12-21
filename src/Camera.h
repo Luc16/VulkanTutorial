@@ -8,7 +8,7 @@
 #include "utils.h"
 
 // TODO revisar a matematica
-namespace vtt {
+namespace vkb {
     class Camera {
     public:
         void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);

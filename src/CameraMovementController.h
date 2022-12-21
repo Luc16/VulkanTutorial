@@ -8,7 +8,7 @@
 #include "Window.h"
 #include "Camera.h"
 
-namespace vtt {
+namespace vkb {
     class CameraMovementController {
     public:
         struct KeyMappings {

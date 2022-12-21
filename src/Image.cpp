@@ -4,8 +4,8 @@
 
 #include "Image.h"
 
-namespace vtt {
-    Image::Image(const vtt::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels,
+namespace vkb {
+    Image::Image(const vkb::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels,
                  VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                  VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags): m_deviceRef(device) {
         createImage(device, width, height, mipLevels, numSamples, format, tiling, usage, properties);
@@ -19,7 +19,7 @@ namespace vtt {
         vkFreeMemory(m_deviceRef.device(), m_imageMemory, nullptr);
     }
 
-    void Image::createImage(const vtt::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels,
+    void Image::createImage(const vkb::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels,
                             VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                             VkMemoryPropertyFlags properties){
         VkImageCreateInfo imageInfo{};

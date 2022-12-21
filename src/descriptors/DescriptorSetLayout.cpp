@@ -4,7 +4,7 @@
 
 #include "DescriptorSetLayout.h"
 
-namespace vtt {
+namespace vkb {
 
     DescriptorSetLayout::DescriptorSetLayout(const Device &device, const std::unordered_map<uint32_t,
                                              VkDescriptorSetLayoutBinding>& bindings): m_deviceRef(device), m_bindings(bindings) {

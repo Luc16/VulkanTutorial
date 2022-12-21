@@ -4,7 +4,7 @@
 
 #include "DescriptorWriter.h"
 
-namespace vtt {
+namespace vkb {
 
     DescriptorWriter &DescriptorWriter::writeBuffer(uint32_t binding, VkDescriptorBufferInfo *bufferInfo) {
         if (m_layout.m_bindings.count(binding) == 0) throw std::runtime_error("No layout for this binding");

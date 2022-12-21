@@ -8,7 +8,7 @@
 #include "DescriptorSetLayout.h"
 #include "DescriptorPool.h"
 
-namespace vtt {
+namespace vkb {
     class DescriptorWriter {
     public:
         DescriptorWriter(DescriptorSetLayout& layout, DescriptorPool& pool): m_layout(layout), m_pool(pool) {}

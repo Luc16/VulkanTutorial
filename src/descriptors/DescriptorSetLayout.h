@@ -7,7 +7,7 @@
 
 #include "../Device.h"
 
-namespace vtt {
+namespace vkb {
     class DescriptorSetLayout {
     public:
         class Builder {

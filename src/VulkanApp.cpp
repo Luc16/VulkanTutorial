@@ -4,11 +4,11 @@
 
 #include "VulkanApp.h"
 
-namespace vtt {
+namespace vkb {
 
     VulkanApp::VulkanApp(int width, int height, const std::string &appName, Device::PhysicalDeviceType type):
     window(width, height, appName), device(window, type), renderer(window, device), m_appName(appName) {
-        globalDescriptorPool = vtt::DescriptorPool::Builder(device)
+        globalDescriptorPool = vkb::DescriptorPool::Builder(device)
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 })
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 })
                 .addPoolSize({ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 })
@@ -64,14 +64,14 @@ namespace vtt {
 
     }
 
-    std::vector<VkDescriptorSet> VulkanApp::createDescriptorSets(vtt::DescriptorSetLayout& layout,
+    std::vector<VkDescriptorSet> VulkanApp::createDescriptorSets(vkb::DescriptorSetLayout& layout,
                                                       std::vector<VkDescriptorBufferInfo> bufferInfos,
                                                       std::vector<VkDescriptorImageInfo> imageInfos) {
-        std::vector<VkDescriptorSet> descriptorSets(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+        std::vector<VkDescriptorSet> descriptorSets(vkb::SwapChain::MAX_FRAMES_IN_FLIGHT);
 
         for (auto & descriptorSet : descriptorSets) {
 
-            auto writer = vtt::DescriptorWriter(layout, *globalDescriptorPool);
+            auto writer = vkb::DescriptorWriter(layout, *globalDescriptorPool);
 
             for (auto& bufferInfo : bufferInfos){
                 writer.writeBuffer(0, &bufferInfo);

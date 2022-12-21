@@ -7,7 +7,7 @@
 
 #include "Device.h"
 
-namespace vtt {
+namespace vkb {
     class Pipeline {
     public:
         struct PipelineConfigInfo {

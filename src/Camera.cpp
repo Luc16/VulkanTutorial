@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-namespace vtt {
+namespace vkb {
 
     void Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
         m_proj = glm::mat4{1.0f};

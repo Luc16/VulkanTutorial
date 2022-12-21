@@ -21,22 +21,22 @@
 #include "src/VulkanApp.h"
 #include "src/InstancedObjects.h"
 
-class InstancingApp: public vtt::VulkanApp {
+class InstancingApp: public vkb::VulkanApp {
 public:
-    InstancingApp(int width, int height, const std::string &appName, vtt::Device::PhysicalDeviceType type = vtt::Device::INTEL):
+    InstancingApp(int width, int height, const std::string &appName, vkb::Device::PhysicalDeviceType type = vkb::Device::INTEL):
     VulkanApp(width, height, appName, type) {}
 
 private:
     uint32_t INSTANCE_COUNT = 65536;
 
     const std::string planeModelPath = "../models/quad.obj";
-    const vtt::RenderSystem::ShaderPaths shaderPaths = vtt::RenderSystem::ShaderPaths {
+    const vkb::RenderSystem::ShaderPaths shaderPaths = vkb::RenderSystem::ShaderPaths {
             "../shaders/default.vert.spv",
             "../shaders/default.frag.spv"
     };
 
     const std::string sphereModelPath = "../models/lowsphere.obj";
-    const vtt::RenderSystem::ShaderPaths instanceShaderPaths = vtt::RenderSystem::ShaderPaths {
+    const vkb::RenderSystem::ShaderPaths instanceShaderPaths = vkb::RenderSystem::ShaderPaths {
             "../shaders/instancing.vert.spv",
             "../shaders/instancing.frag.spv"
     };
@@ -53,18 +53,18 @@ private:
         float scale;
     };
 
-    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, planeModelPath)};
+    vkb::DrawableObject plane{vkb::Model::createModelFromFile(device, planeModelPath)};
 
-    std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
+    std::vector<std::unique_ptr<vkb::Buffer>> uniformBuffers;
 
-    vtt::RenderSystem defaultSystem{device};
+    vkb::RenderSystem defaultSystem{device};
     std::vector<VkDescriptorSet> defaultDescriptorSets;
-    vtt::RenderSystem instanceSystem{device};
+    vkb::RenderSystem instanceSystem{device};
 
-    vtt::Camera camera{};
-    vtt::CameraMovementController cameraController{};
+    vkb::Camera camera{};
+    vkb::CameraMovementController cameraController{};
 
-    vtt::InstancedObjects<InstanceData> instancedSpheres{device, INSTANCE_COUNT, vtt::Model::createModelFromFile(device, sphereModelPath)};
+    vkb::InstancedObjects<InstanceData> instancedSpheres{device, INSTANCE_COUNT, vkb::Model::createModelFromFile(device, sphereModelPath)};
 
     float damping = 0.05f, sphereRadius = 0.641f;
     std::vector<float> sphereSpeeds;

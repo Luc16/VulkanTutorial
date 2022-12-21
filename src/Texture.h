@@ -11,7 +11,7 @@
 #include "Image.h"
 #include <GLFW/glfw3.h>
 
-namespace vtt {
+namespace vkb {
     class Texture {
     public:
         Texture(const Device &device, const std::string& texPath);
@@ -36,7 +36,7 @@ namespace vtt {
 
         const Device& m_deviceRef;
         uint32_t m_mipLevels{};
-        std::unique_ptr<vtt::Image> m_textureImage;
+        std::unique_ptr<vkb::Image> m_textureImage;
 
         VkSampler m_textureSampler{};
     };

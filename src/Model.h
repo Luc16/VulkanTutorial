@@ -10,7 +10,7 @@
 #include "Buffer.h"
 #include <GLFW/glfw3.h>
 
-namespace vtt {
+namespace vkb {
     class Model {
     public:
         struct Vertex {
@@ -44,11 +44,11 @@ namespace vtt {
 
         const Device& m_deviceRef;
 
-        std::unique_ptr<vtt::Buffer> m_vertexBuffer;
+        std::unique_ptr<vkb::Buffer> m_vertexBuffer;
         uint32_t m_vertexCount;
 
         bool m_hasIndexBuffer = false;
-        std::unique_ptr<vtt::Buffer> m_indexBuffer;
+        std::unique_ptr<vkb::Buffer> m_indexBuffer;
         uint32_t m_indexCount;
     };
 }

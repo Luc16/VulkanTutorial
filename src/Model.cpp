@@ -9,8 +9,8 @@
 
 namespace std {
     template <>
-    struct hash<vtt::Model::Vertex> {
-        size_t operator()(vtt::Model::Vertex const &vertex) const {
+    struct hash<vkb::Model::Vertex> {
+        size_t operator()(vkb::Model::Vertex const &vertex) const {
             size_t seed = 0;
             hashCombine(seed, vertex.pos, vertex.color, vertex.normal, vertex.texCoord);
             return seed;
@@ -18,7 +18,7 @@ namespace std {
     };
 }
 
-namespace vtt {
+namespace vkb {
 
     Model::Model(Device &device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices): m_deviceRef(device) {
         m_hasIndexBuffer = true;
@@ -34,11 +34,11 @@ namespace vtt {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
         m_vertexCount = static_cast<uint32_t>(vertices.size());
 
-        vtt::Buffer stagingBuffer(m_deviceRef, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        vkb::Buffer stagingBuffer(m_deviceRef, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         stagingBuffer.singleWrite(vertices.data());
 
-        m_vertexBuffer = std::make_unique<vtt::Buffer>(m_deviceRef, bufferSize,
+        m_vertexBuffer = std::make_unique<vkb::Buffer>(m_deviceRef, bufferSize,
                                                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -49,11 +49,11 @@ namespace vtt {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
         m_indexCount = static_cast<uint32_t>(indices.size());
 
-        vtt::Buffer stagingBuffer(m_deviceRef, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        vkb::Buffer stagingBuffer(m_deviceRef, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         stagingBuffer.singleWrite(indices.data());
 
-        m_indexBuffer = std::make_unique<vtt::Buffer>(m_deviceRef, bufferSize,
+        m_indexBuffer = std::make_unique<vkb::Buffer>(m_deviceRef, bufferSize,
                                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 

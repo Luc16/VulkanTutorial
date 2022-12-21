@@ -4,7 +4,7 @@
 
 #include "Buffer.h"
 
-namespace vtt {
+namespace vkb {
 
     Buffer::Buffer(const Device& device, VkDeviceSize bufferSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties):
     m_bufferSize(bufferSize), m_deviceRef(device)

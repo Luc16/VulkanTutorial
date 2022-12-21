@@ -11,7 +11,7 @@
 #include "Window.h"
 #include <GLFW/glfw3.h>
 
-namespace vtt{
+namespace vkb{
     class Device {
     public:
 #ifdef NDEBUG

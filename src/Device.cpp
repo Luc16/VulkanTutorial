@@ -4,7 +4,7 @@
 
 #include "Device.h"
 
-namespace vtt {
+namespace vkb {
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

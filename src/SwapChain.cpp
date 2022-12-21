@@ -5,7 +5,7 @@
 #include "SwapChain.h"
 
 #include <utility>
-namespace vtt {
+namespace vkb {
     SwapChain::SwapChain(const Device& device, VkExtent2D windowExtent): m_deviceRef(device), m_windowExtent(windowExtent) {
         init();
     }
@@ -83,7 +83,7 @@ namespace vtt {
 
         VkResult result = vkQueuePresentKHR(m_deviceRef.presentQueue(), &presentInfo);
 
-        currentFrame = (currentFrame + 1) % vtt::SwapChain::MAX_FRAMES_IN_FLIGHT;
+        currentFrame = (currentFrame + 1) % vkb::SwapChain::MAX_FRAMES_IN_FLIGHT;
 
         return result;
     }

@@ -7,7 +7,7 @@
 #include "Model.h"
 
 
-namespace vtt {
+namespace vkb {
 
     Pipeline::Pipeline(const Device &device, const std::string &vertShaderPath, const std::string &fragShaderPath,
                        Pipeline::PipelineConfigInfo &configInfo): m_deviceRef(device) {
@@ -184,8 +184,8 @@ namespace vtt {
         configInfo.dynamicState.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
         configInfo.dynamicState.pDynamicStates = configInfo.dynamicStateEnables.data();
 
-        configInfo.bindingDescription.push_back(vtt::Model::Vertex::getBindingDescription());
-        auto attributeDescription = vtt::Model::Vertex::getAttributeDescriptions();
+        configInfo.bindingDescription.push_back(vkb::Model::Vertex::getBindingDescription());
+        auto attributeDescription = vkb::Model::Vertex::getAttributeDescriptions();
         configInfo.attributeDescription.insert(configInfo.attributeDescription.end(), attributeDescription.begin(), attributeDescription.end());
 
         return configInfo;

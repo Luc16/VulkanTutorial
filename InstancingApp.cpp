@@ -10,18 +10,18 @@ void InstancingApp::onCreate() {
     createUniformBuffers();
 
     // Default render system
-    auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+    auto defaultDescriptorLayout = vkb::DescriptorSetLayout::Builder(device)
             .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, nullptr})
             .build();
     defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout,{uniformBuffers[0]->descriptorInfo()});
     {
-        defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vtt::DrawableObject::PushConstantData));
+        defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), sizeof(vkb::DrawableObject::PushConstantData));
         defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
     }
 
     {
         instanceSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(), 0);
-        instanceSystem.createPipeline(renderer.renderPass(), instanceShaderPaths, [this](vtt::Pipeline::PipelineConfigInfo& info) {
+        instanceSystem.createPipeline(renderer.renderPass(), instanceShaderPaths, [this](vkb::Pipeline::PipelineConfigInfo& info) {
             info.bindingDescription.push_back(instancedSpheres.getBindingDescription());
             info.attributeDescription.push_back({4, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, position)});
             info.attributeDescription.push_back({5, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, color)});
@@ -75,9 +75,9 @@ void InstancingApp::createInstances() {
 
 void InstancingApp::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-    uniformBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-    for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-        uniformBuffers[i] = std::make_unique<vtt::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+    uniformBuffers.resize(vkb::SwapChain::MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < vkb::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
+        uniformBuffers[i] = std::make_unique<vkb::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
@@ -161,7 +161,7 @@ void InstancingApp::showImGui(){
 
         if (ImGui::CollapsingHeader("Plane", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-            ImGui::SliderFloat("y", &plane.m_translation.y, -4.0f, 0.0f);
+            ImGui::SliderFloat("y", &plane.m_translation.y, -100.0f, 10.0f);
             if (ImGui::Button("Reset")) createInstances();
 
         }

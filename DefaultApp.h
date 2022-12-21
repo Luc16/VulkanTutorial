@@ -21,21 +21,21 @@
 #include "src/VulkanApp.h"
 #include "src/InstancedObjects.h"
 
-class DefaultApp: public vtt::VulkanApp {
+class DefaultApp: public vkb::VulkanApp {
 public:
     DefaultApp(int width, int height, const std::string &appName): VulkanApp(width, height, appName) {}
 
 private:
     const std::string modelPath = "../models/viking_room.obj";
     const std::string texturePath = "../textures/viking_room.png";
-    const vtt::RenderSystem::ShaderPaths vikingShaderPaths = vtt::RenderSystem::ShaderPaths {
+    const vkb::RenderSystem::ShaderPaths vikingShaderPaths = vkb::RenderSystem::ShaderPaths {
             "../shaders/viking_room.vert.spv",
             "../shaders/viking_room.frag.spv"
     };
 
     const std::string axisModelPath = "../models/axis.obj";
     const std::string planeModelPath = "../models/quad.obj";
-    const vtt::RenderSystem::ShaderPaths shaderPaths = vtt::RenderSystem::ShaderPaths {
+    const vkb::RenderSystem::ShaderPaths shaderPaths = vkb::RenderSystem::ShaderPaths {
             "../shaders/default.vert.spv",
             "../shaders/default.frag.spv"
     };
@@ -54,21 +54,21 @@ private:
         float scale;
     };
 
-    vtt::DrawableObject vikingRoom{vtt::Model::createModelFromFile(device, modelPath), std::make_shared<vtt::Texture>(device, texturePath)};
-    vtt::DrawableObject axis{vtt::Model::createModelFromFile(device, axisModelPath)};
-    vtt::DrawableObject plane{vtt::Model::createModelFromFile(device, planeModelPath)};
-    vtt::DrawableObject sphere{vtt::Model::createModelFromFile(device, sphereModelPath)};
+    vkb::DrawableObject vikingRoom{vkb::Model::createModelFromFile(device, modelPath), std::make_shared<vkb::Texture>(device, texturePath)};
+    vkb::DrawableObject axis{vkb::Model::createModelFromFile(device, axisModelPath)};
+    vkb::DrawableObject plane{vkb::Model::createModelFromFile(device, planeModelPath)};
+    vkb::DrawableObject sphere{vkb::Model::createModelFromFile(device, sphereModelPath)};
 
 
-    std::vector<std::unique_ptr<vtt::Buffer>> uniformBuffers;
+    std::vector<std::unique_ptr<vkb::Buffer>> uniformBuffers;
 
-    vtt::RenderSystem roomSystem{device};
+    vkb::RenderSystem roomSystem{device};
     std::vector<VkDescriptorSet> roomDescriptorSets;
-    vtt::RenderSystem defaultSystem{device};
+    vkb::RenderSystem defaultSystem{device};
     std::vector<VkDescriptorSet> defaultDescriptorSets;
 
-    vtt::Camera camera{};
-    vtt::CameraMovementController cameraController{};
+    vkb::Camera camera{};
+    vkb::CameraMovementController cameraController{};
 
 
     float scale = 1, speed = 0, sphereSpeed = 0, damping = 0.05f; // sphereRadius = 0.641f;

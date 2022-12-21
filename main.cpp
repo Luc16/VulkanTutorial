@@ -11,7 +11,7 @@ const uint32_t HEIGHT = 700;
 const std::string APP_NAME = "Vulkan";
 
 int main() {
-    InstancingApp app{WIDTH, HEIGHT, APP_NAME, vtt::Device::NVIDIA};
+    InstancingApp app{WIDTH, HEIGHT, APP_NAME, vkb::Device::NVIDIA};
 
 
     try {

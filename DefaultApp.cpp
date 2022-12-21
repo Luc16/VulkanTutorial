@@ -12,25 +12,25 @@ void DefaultApp::onCreate() {
 
 // Room render system
     {
-        auto roomDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+        auto roomDescriptorLayout = vkb::DescriptorSetLayout::Builder(device)
                 .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, nullptr})
                 .addBinding({1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                              VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}).build();
         roomDescriptorSets = createDescriptorSets(roomDescriptorLayout,
                                                   {uniformBuffers[0]->descriptorInfo()}, {vikingRoom.textureInfo()});
         roomSystem.createPipelineLayout(roomDescriptorLayout.descriptorSetLayout(),
-                                        sizeof(vtt::DrawableObject::PushConstantData));
+                                        sizeof(vkb::DrawableObject::PushConstantData));
         roomSystem.createPipeline(renderer.renderPass(), vikingShaderPaths);
     }
 
 // Default render system
-    auto defaultDescriptorLayout = vtt::DescriptorSetLayout::Builder(device)
+    auto defaultDescriptorLayout = vkb::DescriptorSetLayout::Builder(device)
             .addBinding({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, nullptr})
             .build();
     defaultDescriptorSets = createDescriptorSets(defaultDescriptorLayout, {uniformBuffers[0]->descriptorInfo()});
     {
         defaultSystem.createPipelineLayout(defaultDescriptorLayout.descriptorSetLayout(),
-                                           sizeof(vtt::DrawableObject::PushConstantData));
+                                           sizeof(vkb::DrawableObject::PushConstantData));
         defaultSystem.createPipeline(renderer.renderPass(), shaderPaths);
     }
 
@@ -54,9 +54,9 @@ void DefaultApp::initializeObjects() {
 
 void DefaultApp::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-    uniformBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
-    for (size_t i = 0; i < vtt::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
-        uniformBuffers[i] = std::make_unique<vtt::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+    uniformBuffers.resize(vkb::SwapChain::MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < vkb::SwapChain::MAX_FRAMES_IN_FLIGHT; ++i) {
+        uniformBuffers[i] = std::make_unique<vkb::Buffer>(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }

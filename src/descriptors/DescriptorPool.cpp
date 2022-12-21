@@ -4,7 +4,7 @@
 
 #include "DescriptorPool.h"
 
-namespace vtt {
+namespace vkb {
 
     DescriptorPool::DescriptorPool(const Device &device, const std::vector<VkDescriptorPoolSize> &poolSizes,
                                    VkDescriptorPoolCreateFlags poolFlags, uint32_t poolMaxSets): m_deviceRef(device) {

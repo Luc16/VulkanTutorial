@@ -24,7 +24,7 @@
 #include "RenderSystem.h"
 #include "DrawableObject.h"
 
-namespace vtt{
+namespace vkb{
     class VulkanApp {
     public:
         VulkanApp(int width, int height, const std::string &appName, Device::PhysicalDeviceType type = Device::INTEL);
@@ -46,12 +46,12 @@ namespace vtt{
         virtual void onCreate() = 0;
         virtual void onDestroy() {};
 
-        vtt::Window window;
-        vtt::Device device;
+        vkb::Window window;
+        vkb::Device device;
 
-        std::unique_ptr<vtt::DescriptorPool> globalDescriptorPool;
+        std::unique_ptr<vkb::DescriptorPool> globalDescriptorPool;
 
-        vtt::Renderer renderer;
+        vkb::Renderer renderer;
     };
 }
 

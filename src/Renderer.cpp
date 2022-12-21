@@ -8,7 +8,7 @@
 #include "../external/imgui/imgui_impl_glfw.h"
 #include "../external/imgui/imgui_internal.h"
 
-namespace vtt {
+namespace vkb {
 
     Renderer::Renderer(Window &window, const Device &device): m_windowRef(window) , m_deviceRef(device) {
         recreateSwapChain();
@@ -77,7 +77,7 @@ namespace vtt {
         }
         if (m_imGuiActivated) ImGui::EndFrame();
 
-        m_currentFrame = (m_currentFrame + 1) % vtt::SwapChain::MAX_FRAMES_IN_FLIGHT;
+        m_currentFrame = (m_currentFrame + 1) % vkb::SwapChain::MAX_FRAMES_IN_FLIGHT;
         m_isFrameStarted = false;
     }
 
@@ -109,7 +109,7 @@ namespace vtt {
         vkDeviceWaitIdle(m_deviceRef.device());
 
         if (m_swapChain == nullptr){
-            m_swapChain = std::make_unique<vtt::SwapChain>(m_deviceRef, m_windowRef.extent());
+            m_swapChain = std::make_unique<vkb::SwapChain>(m_deviceRef, m_windowRef.extent());
             return;
         }
         std::shared_ptr<SwapChain> oldSwapChain = std::move(m_swapChain);
@@ -124,7 +124,7 @@ namespace vtt {
     }
 
     void Renderer::createCommandBuffers(){
-        m_commandBuffers.resize(vtt::SwapChain::MAX_FRAMES_IN_FLIGHT);
+        m_commandBuffers.resize(vkb::SwapChain::MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

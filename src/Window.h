@@ -9,7 +9,7 @@
 #include <vulkan/vulkan.h>
 #include <string>
 
-namespace vtt {
+namespace vkb {
     class Window {
     public:
         Window(int width, int height, const std::string& title);

@@ -4,7 +4,7 @@
 
 #include "InstancedObjects.h"
 
-namespace vtt {
+namespace vkb {
 
 
 }

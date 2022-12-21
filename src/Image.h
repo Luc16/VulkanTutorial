@@ -8,7 +8,7 @@
 #include <vulkan/vulkan.h>
 #include "Device.h"
 
-namespace vtt {
+namespace vkb {
     class Image {
     public:
         Image(const Device& device, uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
@@ -38,7 +38,7 @@ namespace vtt {
         VkImageView m_imageView{};
         VkImageLayout m_layout{};
 
-        const vtt::Device &m_deviceRef;
+        const vkb::Device &m_deviceRef;
     };
 }
 

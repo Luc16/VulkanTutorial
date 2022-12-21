@@ -11,7 +11,7 @@
 #include "Device.h"
 #include "Pipeline.h"
 
-namespace vtt {
+namespace vkb {
     class RenderSystem {
     public:
         struct ShaderPaths {

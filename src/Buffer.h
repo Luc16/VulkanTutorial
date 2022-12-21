@@ -11,7 +11,7 @@
 #include "Device.h"
 #include <GLFW/glfw3.h>
 
-namespace vtt {
+namespace vkb {
     class Buffer {
     public:
 

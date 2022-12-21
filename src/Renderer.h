@@ -9,7 +9,7 @@
 #include <vector>
 #include "SwapChain.h"
 
-namespace vtt {
+namespace vkb {
     class Renderer {
     public:
         Renderer(Window& window, const Device& device);
@@ -40,7 +40,7 @@ namespace vtt {
         void initImGuiVulkan(VkDescriptorPool descriptorPool);
         static void checkVkResultImGui(VkResult err);
 
-        std::unique_ptr<vtt::SwapChain> m_swapChain;
+        std::unique_ptr<vkb::SwapChain> m_swapChain;
         std::vector<VkCommandBuffer> m_commandBuffers;
         uint32_t m_currentFrame{0};
         uint32_t m_imageIndex{};

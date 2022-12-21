@@ -11,14 +11,14 @@
 #include "Texture.h"
 #include "RenderSystem.h"
 
-namespace vtt {
+namespace vkb {
     class DrawableObject {
     public:
         struct PushConstantData {
             glm::mat4 modelMatrix{1.f};
         };
 
-        explicit DrawableObject(std::shared_ptr<vtt::Model> model, std::shared_ptr<vtt::Texture> texture = nullptr):
+        explicit DrawableObject(std::shared_ptr<vkb::Model> model, std::shared_ptr<vkb::Texture> texture = nullptr):
             m_model(std::move(model)), m_texture(std::move(texture)) {}
 
         DrawableObject(const DrawableObject &) = delete;
@@ -29,7 +29,7 @@ namespace vtt {
         void translate(glm::vec3 move) { m_translation += move; }
         void rotateAxis(int axis, float angle) { m_rotation[axis] += angle;}
         void resetRotation(int axis) {m_rotation[axis] = 0; }
-        virtual void render(vtt::RenderSystem& renderSystem, VkCommandBuffer commandBuffer);
+        virtual void render(vkb::RenderSystem& renderSystem, VkCommandBuffer commandBuffer);
 
         [[nodiscard]] glm::mat4 modelMatrix() const;
         [[nodiscard]] VkDescriptorImageInfo textureInfo() const { return m_texture->descriptorInfo();}
@@ -38,9 +38,9 @@ namespace vtt {
         glm::vec3 m_scale{1.f, 1.f, 1.f};
         glm::vec3 m_rotation{};
 
-        std::shared_ptr<vtt::Texture> m_texture;
+        std::shared_ptr<vkb::Texture> m_texture;
     protected:
-        std::shared_ptr<vtt::Model> m_model;
+        std::shared_ptr<vkb::Model> m_model;
     };
 }
 

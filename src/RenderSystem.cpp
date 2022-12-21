@@ -3,7 +3,7 @@
 //
 
 #include "RenderSystem.h"
-namespace vtt {
+namespace vkb {
     RenderSystem::RenderSystem(const Device& device): m_deviceRef(device) {}
 
     RenderSystem::~RenderSystem() {
