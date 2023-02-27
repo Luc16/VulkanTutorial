@@ -8,22 +8,23 @@
 #include <sstream>
 #include "external/imgui/imgui.h"
 #include "external/objloader/tiny_obj_loader.h"
-#include "src/SwapChain.h"
-#include "src/Buffer.h"
-#include "src/Model.h"
-#include "src/utils.h"
-#include "src/Texture.h"
-#include "src/descriptors/DescriptorSetLayout.h"
-#include "src/Camera.h"
-#include "src/CameraMovementController.h"
-#include "src/RenderSystem.h"
-#include "src/DrawableObject.h"
-#include "src/VulkanApp.h"
-#include "src/InstancedObjects.h"
+#include "src/lib/SwapChain.h"
+#include "src/lib/Buffer.h"
+#include "src/lib/Model.h"
+#include "src/lib/utils.h"
+#include "src/lib/Texture.h"
+#include "src/lib/descriptors/DescriptorSetLayout.h"
+#include "src/lib/Camera.h"
+#include "src/lib/CameraMovementController.h"
+#include "src/lib/RenderSystem.h"
+#include "src/lib/DrawableObject.h"
+#include "src/lib/VulkanApp.h"
+#include "src/lib/InstancedObjects.h"
 
 class DefaultApp: public vkb::VulkanApp {
 public:
-    DefaultApp(int width, int height, const std::string &appName): VulkanApp(width, height, appName) {}
+    DefaultApp(int width, int height, const std::string &appName, vkb::Device::PhysicalDeviceType type = vkb::Device::INTEL):
+            VulkanApp(width, height, appName, type) {}
 
 private:
     const std::string modelPath = "../models/viking_room.obj";

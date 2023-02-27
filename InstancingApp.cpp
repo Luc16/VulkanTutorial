@@ -138,7 +138,6 @@ void InstancingApp::updateUniformBuffer(uint32_t frameIndex, float deltaTime){
 
 void InstancingApp::showImGui(){
 
-    // main m_windowRef
     {
 
         ImGui::Begin("Control Panel");
@@ -151,11 +150,11 @@ void InstancingApp::showImGui(){
         }
 
         if (ImGui::Button("Double instance count")){
-            INSTANCE_COUNT *= 2;
+            if (INSTANCE_COUNT < 8388608) INSTANCE_COUNT *= 2;
             createInstances();
         }
         if (ImGui::Button("Half instance count")){
-            INSTANCE_COUNT /= 2;
+            if (INSTANCE_COUNT > 1) INSTANCE_COUNT /= 2;
             createInstances();
         }
 
