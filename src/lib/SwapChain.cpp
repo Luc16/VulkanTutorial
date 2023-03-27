@@ -10,7 +10,7 @@ namespace vkb {
         init();
     }
 
-    SwapChain::SwapChain(const Device& device, VkExtent2D windowExtent, std::shared_ptr<SwapChain>  oldSwapChain):
+    SwapChain::SwapChain(const Device& device, VkExtent2D windowExtent, std::shared_ptr<SwapChain> oldSwapChain):
     m_deviceRef(device), m_windowExtent(windowExtent), m_oldSwapChain(std::move(oldSwapChain)) {
         init();
         m_oldSwapChain = nullptr;
@@ -48,15 +48,19 @@ namespace vkb {
                               VK_NULL_HANDLE, imageIndex);
     }
 
-    VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, const uint32_t* imageIndex) {
+    VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, const uint32_t* imageIndex, const std::vector<VkSemaphore>& additionalSemaphores, const std::vector<VkPipelineStageFlags>& additionalStages) {
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphore[] = {m_imageAvailableSemaphores[currentFrame]};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphore;
-        submitInfo.pWaitDstStageMask = waitStages;
+        std::vector<VkSemaphore> waitSemaphores{m_imageAvailableSemaphores[currentFrame]};
+        waitSemaphores.insert(waitSemaphores.end(), additionalSemaphores.begin(), additionalSemaphores.end());
+
+        std::vector<VkPipelineStageFlags> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        waitStages.insert(waitStages.end(), additionalStages.begin(), additionalStages.end());
+
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+        submitInfo.pWaitSemaphores = waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = waitStages.data();
 
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = buffers;
@@ -146,10 +150,10 @@ namespace vkb {
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         Device::QueueFamilyIndices familyIndices = m_deviceRef.findQueueFamilies(m_deviceRef.physicalDevice());
-        uint32_t queueFamilyIndices[] = {familyIndices.graphicsFamily.value(), familyIndices.presentFamily.value()};
-        m_queueFamily = familyIndices.graphicsFamily.value();
+        uint32_t queueFamilyIndices[] = {familyIndices.graphicsAndComputeFamily.value(), familyIndices.presentFamily.value()};
+        m_queueFamily = familyIndices.graphicsAndComputeFamily.value();
 
-        if (familyIndices.graphicsFamily != familyIndices.presentFamily) {
+        if (familyIndices.graphicsAndComputeFamily != familyIndices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
